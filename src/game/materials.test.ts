@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import type { Fixture, Place } from "../lib/types";
-import { FIXTURES, isoProp, planSymbol } from "./fixtures";
+import { FIXTURES, isoProp } from "./fixtures";
 
 /**
  * Materials live in CSS but are named in TypeScript, and nothing type-checks
@@ -85,45 +85,6 @@ describe("every material a prop names is actually defined", () => {
 
   it("gives every drawn line a stroke, so none of them vanish", () => {
     for (const { fixture, cls } of strokes) {
-      expect(declares(cls, "stroke"), `${fixture}: .${cls} sets no stroke`).toBe(
-        true,
-      );
-    }
-  });
-});
-
-/**
- * The plan view has exactly the same trap, and fell into it: every `plan-*`
- * material a fixture named was undefined in CSS, so the whole floor plan
- * rendered in solid black.
- */
-describe("every plan-view material is defined too", () => {
-  const fills: Usage[] = [];
-  const planStrokes: Usage[] = [];
-
-  for (const fixture of FIXTURES) {
-    const svg = planSymbol(sample(fixture));
-    for (const [, cls] of svg.matchAll(/<(?:rect|circle|ellipse) class="([^"]+)"/g)) {
-      if (cls) fills.push({ fixture, cls });
-    }
-    for (const [, cls] of svg.matchAll(/<(?:line|path) class="([^"]+)"/g)) {
-      if (cls) planStrokes.push({ fixture, cls });
-    }
-  }
-
-  it("finds plan classes to check", () => {
-    expect(fills.length).toBeGreaterThan(0);
-    expect(planStrokes.length).toBeGreaterThan(0);
-  });
-
-  it("gives every filled plan shape a fill", () => {
-    for (const { fixture, cls } of fills) {
-      expect(declares(cls, "fill"), `${fixture}: .${cls} sets no fill`).toBe(true);
-    }
-  });
-
-  it("gives every plan line a stroke", () => {
-    for (const { fixture, cls } of planStrokes) {
       expect(declares(cls, "stroke"), `${fixture}: .${cls} sets no stroke`).toBe(
         true,
       );

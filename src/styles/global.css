@@ -43,6 +43,14 @@
   --outline: #2b2721;
   --shade: #2b2721;
   --floor: #ded7c4;
+  --floor-wood: #c99b62;
+  --floor-tile: #dcd8cb;
+  --floor-carpet: #b9b2a2;
+  --floor-rubber: #55565e;
+  --floor-paving: #c3bdb0;
+  --wall-lit: #e6ddc9;
+  --wall-shade: #cfc4ac;
+  --skirting: #b6a98c;
   --room: #eae3d1;
   --room-warn: #f3e2c6;
   --plan-fill: #cabfa4;
@@ -120,6 +128,14 @@
     --outline: #100f14;
     --shade: #000;
     --floor: #23222a;
+    --floor-wood: #7b5836;
+    --floor-tile: #34333d;
+    --floor-carpet: #2f2e37;
+    --floor-rubber: #26262c;
+    --floor-paving: #34333b;
+    --wall-lit: #33313c;
+    --wall-shade: #2a2833;
+    --skirting: #232129;
     --room: #2b2934;
     --room-warn: #3a3226;
     --plan-fill: #3f3d4c;
@@ -286,7 +302,7 @@ a:focus-visible {
   padding: var(--s-5);
 }
 
-/* ── The two camera views ───────────────────────────────────────────────── */
+/* ── The camera ─────────────────────────────────────────────────────────── */
 
 .viewport {
   position: relative;
@@ -297,139 +313,146 @@ a:focus-visible {
   border-radius: var(--r-3);
 }
 
-.board,
 .scene {
   position: absolute;
-  inset: var(--s-4);
-  width: calc(100% - var(--s-4) * 2);
-  height: calc(100% - var(--s-4) * 2);
-  transition:
-    opacity var(--dur-3) var(--ease),
-    transform var(--dur-3) var(--ease);
+  inset: var(--s-3);
+  width: calc(100% - var(--s-3) * 2);
+  height: calc(100% - var(--s-3) * 2);
 }
 
-.scene {
-  opacity: 0;
-  transform: scale(0.98);
+/* Markers belong to planning; the character belongs to playback. */
+
+[data-phase="planning"] .actor,
+[data-phase="playback"] .scene-route-layer,
+[data-phase="playback"] .scene-marker-layer,
+[data-phase="result"] .scene-route-layer,
+[data-phase="result"] .scene-marker-layer {
+  display: none;
 }
 
-[data-phase="planning"] .scene {
-  pointer-events: none;
+/* ── The scene (isometric) ──────────────────────────────────────────────── */
+
+/* The room shell. Walls and a floor with a real material are most of what
+   makes an isometric scene read as a room rather than as furniture floating
+   in the void. */
+
+.wall-back {
+  fill: var(--wall-lit);
 }
 
-[data-phase="playback"] .board,
-[data-phase="result"] .board {
-  opacity: 0;
-  pointer-events: none;
-  transform: scale(1.02);
+.wall-side {
+  fill: var(--wall-shade);
 }
 
-[data-phase="playback"] .scene,
-[data-phase="result"] .scene {
-  opacity: 1;
-  transform: none;
+.skirting-back,
+.skirting-side {
+  fill: var(--skirting);
 }
 
-/* ── Planning board (floor plan) ────────────────────────────────────────── */
-
-.board-floor rect {
-  fill: var(--floor);
+.stage-floor[data-floor="wood"] {
+  fill: var(--floor-wood);
 }
 
-.room-floor {
-  fill: var(--room);
+.stage-floor[data-floor="tile"] {
+  fill: var(--floor-tile);
+}
+
+.stage-floor[data-floor="carpet"] {
+  fill: var(--floor-carpet);
+}
+
+.stage-floor[data-floor="rubber"] {
+  fill: var(--floor-rubber);
+}
+
+.stage-floor[data-floor="paving"] {
+  fill: var(--floor-paving);
+}
+
+.floor-texture line {
   stroke: var(--outline);
-  stroke-width: 0.5;
+  stroke-width: 0.3;
 }
 
-.room.is-affected .room-floor {
-  fill: var(--room-warn);
+.floor-texture .board {
+  opacity: 0.34;
 }
 
-.plan-solid {
-  fill: var(--plan-fill);
-  stroke: var(--outline);
-  stroke-width: 0.45;
-  stroke-linejoin: round;
+.floor-texture .joint {
+  opacity: 0.24;
 }
 
-.plan-hollow {
-  fill: none;
-  stroke: var(--outline);
-  stroke-width: 0.45;
-  stroke-linejoin: round;
+.floor-texture .grid {
+  opacity: 0.22;
 }
 
-.plan-line {
-  fill: none;
-  stroke: var(--outline);
-  stroke-width: 0.45;
-  stroke-linecap: round;
+.floor-texture .nap {
+  opacity: 0.12;
 }
 
-.plan-line-fill {
-  fill: var(--outline);
-}
+/* Task markers: UI, not scenery, so they sit above every prop. */
 
-.place-name {
-  paint-order: stroke fill;
-  stroke: var(--floor);
-  stroke-width: 1.1;
-  stroke-linejoin: round;
-  font-size: 3.2px;
-  font-weight: 600;
-  fill: var(--muted);
-  text-anchor: middle;
-  letter-spacing: 0.04em;
-}
-
-.board-route {
+.scene-route {
   fill: none;
   stroke: var(--accent);
-  stroke-width: 1.2;
+  stroke-width: 1.1;
+  stroke-dasharray: 3 2.6;
   stroke-linecap: round;
-  stroke-linejoin: round;
-  opacity: 0.85;
+  opacity: 0.9;
 }
 
-.board-start polygon {
+.scene-start ellipse {
   fill: var(--muted);
   stroke: var(--outline);
   stroke-width: 0.4;
 }
 
-.board-start text {
+.scene-start text {
+  paint-order: stroke fill;
+  stroke: var(--floor);
+  stroke-width: 1;
   font-size: 2.9px;
   font-weight: 600;
   fill: var(--muted);
   text-anchor: middle;
 }
 
-.pin-disc {
-  fill: var(--accent);
+.marker-stem {
   stroke: var(--outline);
-  stroke-width: 0.6;
+  stroke-width: 0.5;
+  opacity: 0.6;
 }
 
-.pin-number {
-  font-size: 3.9px;
+.marker-foot {
+  fill: var(--outline);
+  opacity: 0.3;
+}
+
+.marker-disc {
+  fill: var(--accent);
+  stroke: var(--outline);
+  stroke-width: 0.7;
+}
+
+.marker-number {
+  font-size: 4.2px;
   font-weight: 700;
   fill: var(--on-accent);
   text-anchor: middle;
 }
 
-.pin-flag {
+.marker-flag {
   fill: var(--warn);
   stroke: var(--outline);
   stroke-width: 0.5;
 }
 
-.pin[data-severity="heavy"] .pin-flag,
-.pin[data-severity="closed"] .pin-flag {
+.marker[data-severity="heavy"] .marker-flag,
+.marker[data-severity="closed"] .marker-flag {
   fill: var(--bad);
 }
 
-.pin-changed .pin-disc {
+.marker-changed .marker-disc {
   animation: pop var(--dur-3) var(--ease-back);
 }
 
@@ -437,7 +460,7 @@ a:focus-visible {
   0% {
     transform-box: fill-box;
     transform-origin: center;
-    scale: 0.45;
+    scale: 0.4;
   }
 
   100% {
@@ -448,95 +471,6 @@ a:focus-visible {
 }
 
 
-/* Plan-view materials. The floor plan is a drawing, not a render, but it
-   carries the same colours as the props so the two views read as one place. */
-
-.plan-wood,
-.plan-steel,
-.plan-cold,
-.plan-dark,
-.plan-glass,
-.plan-fabric,
-.plan-tile,
-.plan-locker,
-.plan-brick,
-.plan-terracotta,
-.plan-accent,
-.plan-rubber,
-.plan-leaf,
-.plan-crop-a,
-.plan-crop-b,
-.plan-crop-c {
-  stroke: var(--outline);
-  stroke-width: 0.45;
-  stroke-linejoin: round;
-}
-
-.plan-wood {
-  fill: var(--m-wood);
-}
-
-.plan-steel {
-  fill: var(--m-steel);
-}
-
-.plan-cold {
-  fill: color-mix(in srgb, var(--m-glass) 45%, white);
-}
-
-.plan-dark {
-  fill: var(--m-dark);
-}
-
-.plan-glass {
-  fill: color-mix(in srgb, var(--m-glass) 70%, white);
-}
-
-.plan-fabric {
-  fill: var(--m-fabric);
-}
-
-.plan-tile {
-  fill: var(--m-tile);
-}
-
-.plan-locker {
-  fill: var(--m-locker);
-}
-
-.plan-brick {
-  fill: var(--m-brick);
-}
-
-.plan-terracotta {
-  fill: var(--m-terracotta);
-}
-
-.plan-accent {
-  fill: var(--accent);
-}
-
-.plan-rubber {
-  fill: var(--m-rubber);
-}
-
-.plan-leaf {
-  fill: var(--m-leaf);
-}
-
-.plan-crop-a {
-  fill: var(--m-crop-a);
-}
-
-.plan-crop-b {
-  fill: var(--m-crop-b);
-}
-
-.plan-crop-c {
-  fill: var(--m-crop-c);
-}
-
-/* ── Playback scene (isometric) ─────────────────────────────────────────── */
 
 /*
   One light direction for the whole scene. A prop sets `--tone` and the three

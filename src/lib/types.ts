@@ -33,6 +33,9 @@ export type Fixture =
   | "carwash"
   | "planter";
 
+/** What the ground is made of, which each scenario chooses. */
+export type FloorKind = "wood" | "tile" | "carpet" | "rubber" | "paving";
+
 /** A named area of the map: a footprint, and what's in it. */
 export type Place = {
   readonly name: string;
@@ -100,6 +103,7 @@ export type ShiftPlan = {
   readonly startClock: number;
   /** Scales travel time, so a flat feels tighter than a town. */
   readonly travelScale: number;
+  readonly floor: FloorKind;
   readonly tasks: readonly Task[];
   /** Only the places this shift actually visits. */
   readonly places: readonly Place[];

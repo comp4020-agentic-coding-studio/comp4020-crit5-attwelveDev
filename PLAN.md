@@ -66,14 +66,14 @@ keys move a focused card as a keyboard equivalent.
 
 **Done when:** manual browser pass at both marking viewports — mouse drag at
 1920×1080 and touch drag at 390×844 — both reorder the list and renumber the
-board. *(Done 2026-08-30: verified in Chromium at both sizes.)*
+markers in the scene. *(Done 2026-08-30: verified in Chromium at both sizes.)*
 
 ### Each place looks like itself — `src/game/fixtures.ts`, `src/game/iso.ts`
 
 Every place names a fixture from a shared vocabulary — counter, shelving,
-fridge, stove, treadmill, rack, lockers, storefront and so on — and each is
-drawn twice: as a floor-plan symbol on the planning board and as an isometric
-prop in the playback scene. Layouts are believable plans (perimeter
+fridge, stove, treadmill, rack, lockers, storefront and so on — drawn as an
+isometric prop from the primitives in `iso.ts`. Layouts are believable plans
+(perimeter
 departments in the supermarket, counters along the kitchen walls, two rows of
 shopfronts in town) rather than scattered points.
 
@@ -96,23 +96,31 @@ order is derived from the geometry, never from authoring order.
   no two render identically, and no prop has a part drawn in front of one that
   hides it, checked at every footprint the scenarios use.
 - `src/game/materials.test.ts` passes — it reads `global.css` and fails if a
-  material a prop names sets no `--tone`, `fill` or `stroke`. Both the black
-  produce discs and the entirely black floor plan were this bug.
+  material a prop names sets no `--tone`, `fill` or `stroke`. The black
+  produce discs were this bug.
+- `fixtures.test.ts` also fails on any part sealed inside another — the bug
+  that had shelving and fridges hiding their own stock.
 - Manual browser pass: a stranger can tell a gym from a kitchen from a
   supermarket with the labels covered, in both themes.
   *(Done 2026-08-30: checked in light and dark at 1440×900.)*
 
-### The two cameras — `src/game/PlanningBoard.ts`, `src/game/Playback.ts`
+### One camera — `src/game/Scene.ts`
 
-Planning is a top-down directory board: places, a numbered route line that
-redraws itself on every reorder, and a shape-and-colour badge on any task the
-day's constraint touches. Playback is a non-interactive isometric replay
-driven by the simulated clock, a few seconds long whatever the shift's
-simulated length.
+Planning and playback are the same isometric room, built as a diorama: a floor
+with a real material, two back walls, a skirting. Planning overlays numbered
+markers and a dashed route that redraws on every reorder; playback hides them
+and walks the character through, driven by the simulated clock and a few
+seconds long whatever the shift's simulated length.
+
+There was a second, top-down floor-plan view for planning. It was cut: a
+second abstract rendering of the same world asked the player to learn two
+languages for one place, and the numbered markers already do the job of
+mapping the task list onto the room.
 
 **Done when:** manual browser pass — a full shift plays to a win and to a
-loss, the active place highlights as the character reaches it, and the replay
-stops dead at the deadline or at a closed task. *(Done 2026-08-30.)*
+loss, the active place highlights as the character reaches it, the replay
+stops dead at the deadline or at a closed task, and no marker is hidden behind
+a prop. *(Done 2026-08-30.)*
 
 ### First attempt is the score — `src/lib/stats.ts`
 

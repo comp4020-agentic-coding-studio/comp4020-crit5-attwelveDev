@@ -1,4 +1,10 @@
-import type { ConstraintKind, Place, Point, Task } from "../types";
+import type {
+  ConstraintKind,
+  FloorKind,
+  Place,
+  Point,
+  Task,
+} from "../types";
 
 /**
  * Content, not engine. Adding a seventh scenario is a new entry in this file
@@ -32,6 +38,8 @@ export type Scenario = {
   readonly startClock: number;
   /** Scales travel time, so a flat feels tighter than a town. */
   readonly travelScale: number;
+  /** What the ground is made of. */
+  readonly floor: FloorKind;
   readonly queueLabel: string;
   readonly hoursLabel: string;
   readonly hours: { readonly verb: string; readonly closedLabel: string };
@@ -70,6 +78,7 @@ const HOME_PLACES: readonly Place[] = [
 
 const GETTING_READY: Scenario = {
   id: "getting-ready",
+  floor: "wood",
   title: "Getting Ready",
   place: "Home",
   weekday: true,
@@ -112,6 +121,7 @@ const OFFICE_PLACES: readonly Place[] = [
 
 const WORK_DAY: Scenario = {
   id: "work-day",
+  floor: "carpet",
   title: "A Work Day",
   place: "The Office",
   weekday: true,
@@ -155,6 +165,7 @@ const GYM_PLACES: readonly Place[] = [
 
 const GYM_SESSION: Scenario = {
   id: "gym-session",
+  floor: "rubber",
   title: "A Gym Session",
   place: "The Gym",
   weekday: true,
@@ -197,6 +208,7 @@ const SHOP_PLACES: readonly Place[] = [
 
 const GROCERY_RUN: Scenario = {
   id: "grocery-run",
+  floor: "tile",
   title: "A Grocery Run",
   place: "The Supermarket",
   weekday: true,
@@ -239,6 +251,7 @@ const KITCHEN_PLACES: readonly Place[] = [
 
 const COOKING: Scenario = {
   id: "cooking",
+  floor: "tile",
   title: "Cooking Dinner",
   place: "The Kitchen",
   weekday: true,
@@ -281,6 +294,7 @@ const TOWN_PLACES: readonly Place[] = [
 
 const WEEKEND_ERRANDS: Scenario = {
   id: "weekend-errands",
+  floor: "paving",
   title: "Weekend Errands",
   place: "Town",
   weekday: false,

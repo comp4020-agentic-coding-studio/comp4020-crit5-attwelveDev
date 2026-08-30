@@ -190,6 +190,7 @@ function build(seed: number, weekend: boolean, day: string | null): Shift {
     startLabel: scenario.startLabel,
     startClock: scenario.startClock,
     travelScale: scenario.travelScale,
+    floor: scenario.floor,
     tasks,
     constraint: NO_CONSTRAINT,
   };

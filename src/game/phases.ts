@@ -8,8 +8,7 @@ import {
 } from "../lib/stats";
 import type { Shift } from "../lib/types";
 import { clockAt, minutes, plural } from "./format";
-import { createPlanningBoard } from "./PlanningBoard";
-import { createPlayback, type Frame } from "./Playback";
+import { createScene, type Frame } from "./Scene";
 import { createTaskList } from "./TaskList";
 
 type Mode = "today" | "random";
@@ -59,8 +58,7 @@ function escape(text: string): string {
 
 export function mountGame(): void {
   const app = need<HTMLElement>("#app");
-  const board = createPlanningBoard(need<SVGSVGElement>("#board"));
-  const stage = createPlayback(need<SVGSVGElement>("#scene"));
+  const scene = createScene(need<SVGSVGElement>("#scene"));
   const resultPanel = need<HTMLElement>("#result");
   const hudClock = need<HTMLElement>("#hud-clock");
   const hudDeadline = need<HTMLElement>("#hud-deadline");
@@ -75,7 +73,7 @@ export function mountGame(): void {
 
   const list = createTaskList(need<HTMLOListElement>("#tasks"), (next) => {
     order = next;
-    board.render(shift, order);
+    scene.setOrder(shift, order);
   });
 
   function setPhase(phase: Phase): void {
@@ -113,7 +111,7 @@ export function mountGame(): void {
   }
 
   function start(next: Shift, nextMode: Mode): void {
-    stage.stop();
+    scene.stop();
     shift = next;
     mode = nextMode;
     practice =
@@ -125,7 +123,8 @@ export function mountGame(): void {
     list.render(shift, order);
     list.setEnabled(true);
     list.setActive(null);
-    board.render(shift, order);
+    scene.build(shift);
+    scene.setOrder(shift, order);
     paintHeader();
     setPhase("planning");
   }
@@ -195,7 +194,7 @@ export function mountGame(): void {
       list.render(shift, order);
       list.setEnabled(true);
       list.setActive(null);
-      board.render(shift, order);
+      scene.setOrder(shift, order);
       paintHeader();
       setPhase("planning");
     });
@@ -242,8 +241,7 @@ export function mountGame(): void {
     list.setEnabled(false);
     setPhase("playback");
     hudDeadline.textContent = `of ${clockAt(shift.startClock, shift.deadline)}`;
-    stage.prepare(shift, order);
-    stage.play(shift, run, stopAt, {
+    scene.play(shift, run, stopAt, {
       onFrame(t, frame) {
         hudClock.textContent = clockAt(shift.startClock, t);
         hudBar.style.width = `${Math.min((t / shift.deadline) * 100, 100)}%`;

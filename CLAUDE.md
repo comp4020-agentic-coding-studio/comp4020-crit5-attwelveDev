@@ -232,11 +232,33 @@ alone, so they're written down rather than left implicit:
   counters line the walls; a high street is two rows of shopfronts. Getting
   the plan right is most of what makes a place read as itself, and it's free —
   it's just coordinates.
-- **The two views are a plan and a room.** Planning draws each place as an
-  architect's floor-plan symbol (a stove is a square with four rings, a bed is
-  a rectangle with a pillow band). Playback draws the same object as an
-  isometric prop. Plan symbols are abstract by convention, which is exactly
-  the lo-fi register the rest of the game is in.
+- **One camera, not two.** Planning and playback are the same isometric room.
+  Planning adds numbered markers and a dashed route; playback swaps them for
+  the character walking it. There was once a separate top-down floor-plan view
+  for planning, and it was cut: a second, abstract rendering of the same world
+  asked the player to learn two languages for one place and taught them
+  nothing the numbered markers don't. Do not reintroduce it.
+- **The target look is a cosy isometric pixel diorama** — the small furnished
+  rooms that circulate as pixel art: a room you could point at and name every
+  object in. Concretely, that means all of:
+  - **A room shell.** A floor plus two back walls and a skirting where they
+    meet. Furniture floating on a void reads as a diagram; the same furniture
+    inside a shell reads as a place.
+  - **Floors are a material, not a fill.** Every scenario picks a `FloorKind`
+    and the ground is drawn with real geometry — staggered floorboards at
+    home, a tile grid in the supermarket, nap in the office, paving in town.
+    Drawn as lines rather than an SVG pattern on purpose: a screen-space
+    pattern doesn't line up with the isometric grid, and a floor that
+    disagrees with what's standing on it reads as a bug.
+  - **Colour on everything.** The references have no grey filler — timber,
+    enamel, glass, steel, fabric, brick, terracotta, produce. Untinted
+    geometry is the failure state.
+  - **Density.** Small objects are what sell it: stock on shelves, plates on
+    the bar, produce in crates, a mug on the desk, foliage in the planter. If
+    a prop looks bare, it needs more things in it, not bigger shapes.
+  - **Markers are UI, scenery is not.** Numbered markers are drawn above every
+    prop, the route below them on the floor. A shelf that hides the number
+    telling you when to visit it is a bug.
 - **One light source, declared once.** Isometric props are built only from the
   primitives in `game/iso.ts`, and a prop picks a material; the three faces
   derive from its `--tone` in CSS. Never shade a face by hand and never add a
@@ -257,6 +279,19 @@ alone, so they're written down rather than left implicit:
   `fixtures.test.ts` holds that floor, along with "no two fixtures render
   identically". Four flat boxes is a PowerPoint slide, and that is the bar
   this game has already failed once.
+- **Model what a thing is, not what it looks like from here.** Three rules,
+  each of which shipped broken first:
+  - **Contents go in front of their container.** Shelving and fridges were
+    solid carcasses with the stock modelled *inside*, so the goods clumped
+    into whichever corner the sort happened to expose. Both are now open —
+    back panel, end posts, shelves, stock in front of them, glass over the
+    top. `fixtures.test.ts` fails on any part sealed inside another.
+  - **Details sit on faces, never at centres.** A handle, seam or control
+    screen placed at a solid's centre is inside it. Put it on the face
+    (`y + d / 2`), or just clear of it. Four props had details buried this way.
+  - **`seat(x, y, size, back)` takes the side the backrest is on**, not the
+    direction the sitter faces. Inverting it put every chair's back against
+    the table it was pulled up to.
 - **Never trust authoring order.** `iso.ts` returns each primitive with its
   bounding box and `render` sorts by the standard isometric occlusion test
   (`b` hides `a` only if it is wholly beyond it along one axis). Authoring

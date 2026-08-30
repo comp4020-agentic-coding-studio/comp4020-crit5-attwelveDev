@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { SCENARIOS } from "../lib/data/scenarios";
 import type { Fixture, Place } from "../lib/types";
-import { FIXTURES, isoParts, isoProp, planSymbol } from "./fixtures";
+import { FIXTURES, isoParts, isoProp } from "./fixtures";
 import { inFront, sortParts } from "./iso";
 
 const sample = (fixture: Fixture): Place => ({
@@ -36,9 +36,8 @@ describe("fixture coverage", () => {
     }
   });
 
-  it("gives every fixture both a plan symbol and a prop", () => {
+  it("gives every fixture a prop", () => {
     for (const fixture of FIXTURES) {
-      expect(planSymbol(sample(fixture)).length, fixture).toBeGreaterThan(0);
       expect(isoParts(sample(fixture)).length, fixture).toBeGreaterThan(0);
     }
   });
@@ -69,13 +68,6 @@ describe("props carry enough detail to read as objects", () => {
     });
   }
 
-  it("gives every plan symbol more than a single outline", () => {
-    for (const fixture of FIXTURES) {
-      const svg = planSymbol(sample(fixture));
-      const shapes = [...svg.matchAll(/<(rect|circle|line|ellipse|path)\b/g)];
-      expect(shapes.length, fixture).toBeGreaterThanOrEqual(4);
-    }
-  });
 });
 
 describe("no two fixtures look the same", () => {
@@ -89,15 +81,37 @@ describe("no two fixtures look the same", () => {
     }
   });
 
-  it("draws a distinct plan symbol for each", () => {
-    const seen = new Map<string, Fixture>();
-    for (const fixture of FIXTURES) {
-      const svg = planSymbol(sample(fixture));
-      const clash = seen.get(svg);
-      expect(clash, `${fixture} plots identically to ${clash}`).toBeUndefined();
-      seen.set(svg, fixture);
-    }
-  });
+});
+
+/**
+ * A part sealed inside another one can never be seen. Shelving and fridges
+ * both shipped as solid carcasses with their stock modelled *inside* them, so
+ * the goods clumped into whichever corner the sort happened to expose. If a
+ * prop has contents, they have to sit in front of the thing that holds them.
+ */
+describe("nothing is buried inside another part", () => {
+  const EPS = 1e-6;
+
+  for (const fixture of FIXTURES) {
+    it(`${fixture} has no part sealed inside another`, () => {
+      const parts = isoParts(sample(fixture));
+      for (const inner of parts) {
+        for (const outer of parts) {
+          if (inner === outer) continue;
+          const sealed =
+            inner.xMin > outer.xMin + EPS &&
+            inner.xMax < outer.xMax - EPS &&
+            inner.yMin > outer.yMin + EPS &&
+            inner.yMax < outer.yMax - EPS &&
+            inner.zMin > outer.zMin + EPS &&
+            inner.zMax < outer.zMax - EPS;
+          expect(sealed, `${fixture}: a part is entirely inside another`).toBe(
+            false,
+          );
+        }
+      }
+    });
+  }
 });
 
 /**

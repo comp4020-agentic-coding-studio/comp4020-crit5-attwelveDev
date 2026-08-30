@@ -2,13 +2,9 @@ import type { Fixture, Place } from "../lib/types";
 import { box, disc, edge, panel, render, slab, type Part } from "./iso";
 
 /**
- * Every fixture is drawn twice, and the pair is the point of the game's two
- * views:
- *
- * - `plan` is an architect's floor-plan symbol — a stove is a square with four
- *   rings, a bed is a rectangle with a pillow band. Plan symbols are abstract
- *   by tradition, which is the lo-fi register the rest of the game is in.
- * - `prop` is the same object in the isometric scene.
+ * One prop per fixture, and the game has exactly one camera: the isometric
+ * scene. There is no separate plan view — a second, abstract rendering of the
+ * same places asked the player to learn two languages for one world.
  *
  * Two rules keep props from collapsing back into grey boxes:
  *
@@ -22,31 +18,13 @@ import { box, disc, edge, panel, render, slab, type Part } from "./iso";
  *    four parts looks like a diagram; the same prop with a dozen looks like a
  *    thing. `fixtures.test.ts` holds a floor under this.
  *
+ * Anything a prop *contains* has to sit in front of the thing containing it.
+ * A solid carcass with its stock modelled inside is stock nobody can see.
+ *
  * Parts are returned unordered — `render` sorts them by geometry. Never rely
  * on authoring order: that is exactly how legs end up painted on top of the
  * desk they hold up.
  */
-
-// ── Plan-view helpers (board coordinates, centred on the place) ────────────
-
-function rect(
-  x: number,
-  y: number,
-  w: number,
-  h: number,
-  cls: string,
-  rx = 0.8,
-): string {
-  return `<rect class="${cls}" x="${(x - w / 2).toFixed(2)}" y="${(y - h / 2).toFixed(2)}" width="${w.toFixed(2)}" height="${h.toFixed(2)}" rx="${rx}" />`;
-}
-
-function line(x1: number, y1: number, x2: number, y2: number): string {
-  return `<line class="plan-line" x1="${x1.toFixed(2)}" y1="${y1.toFixed(2)}" x2="${x2.toFixed(2)}" y2="${y2.toFixed(2)}" />`;
-}
-
-function dot(cx: number, cy: number, r: number, cls = "plan-line"): string {
-  return `<circle class="${cls}" cx="${cx.toFixed(2)}" cy="${cy.toFixed(2)}" r="${r.toFixed(2)}" />`;
-}
 
 /**
  * `count` offsets centred on zero, with the outermost two exactly `span`
@@ -64,219 +42,20 @@ function spread(count: number, span: number): number[] {
 const CROPS = ["t-crop-a", "t-crop-b", "t-crop-c"] as const;
 const crop = (i: number): string => CROPS[i % CROPS.length] as string;
 
-type PlanFn = (x: number, y: number, w: number, h: number) => string;
 type PropFn = (x: number, y: number, w: number, h: number) => Part[];
-
-// ── Plan symbols ──────────────────────────────────────────────────────────
-
-const PLAN: Record<Fixture, PlanFn> = {
-  counter: (x, y, w, h) =>
-    rect(x, y, w - 3, h * 0.42, "plan-wood") +
-    spread(3, w - 6).map((dx) => line(x + dx, y - h * 0.21, x + dx, y + h * 0.21)).join("") +
-    spread(2, w - 10).map((dx) => dot(x + dx, y - h * 0.06, 1, "plan-steel")).join(""),
-
-  shelving: (x, y, w, h) =>
-    spread(3, h * 0.78)
-      .map(
-        (dy, row) =>
-          rect(x, y + dy, w - 4, h * 0.14, "plan-steel", 0.4) +
-          spread(5, w - 7)
-            .map((dx, i) => dot(x + dx, y + dy, 0.75, `plan-${crop((i + row) % 3).slice(2)}`))
-            .join(""),
-      )
-      .join(""),
-
-  fridge: (x, y, w, h) =>
-    rect(x, y, w - 4, h - 4, "plan-cold") +
-    line(x, y - (h - 4) / 2, x, y + (h - 4) / 2) +
-    spread(2, w - 12).map((dx) => dot(x + dx, y, 0.65, "plan-steel")).join("") +
-    spread(3, h - 9)
-      .map((dy) => line(x - (w - 7) / 2, y + dy, x + (w - 7) / 2, y + dy))
-      .join(""),
-
-  stove: (x, y, w, h) => {
-    const s = Math.min(w, h) - 5;
-    return (
-      rect(x, y, s, s, "plan-steel") +
-      spread(2, s * 0.6)
-        .flatMap((dx) => spread(2, s * 0.55).map((dy) => dot(x + dx, y + dy, s * 0.12, "plan-dark")))
-        .join("") +
-      rect(x, y - s * 0.5, s, 1.6, "plan-solid", 0.3) +
-      spread(3, s * 0.6).map((dx) => dot(x + dx, y - s * 0.5, 0.5)).join("")
-    );
-  },
-
-  oven: (x, y, w, h) =>
-    rect(x, y, w - 5, h - 5, "plan-dark") +
-    rect(x, y + 0.6, w - 9, h - 10, "plan-glass", 0.5) +
-    line(x - (w - 9) / 2, y - (h - 5) / 2 + 2.2, x + (w - 9) / 2, y - (h - 5) / 2 + 2.2) +
-    spread(2, w - 12).map((dx) => dot(x + dx, y - (h - 5) / 2 + 1, 0.5, "plan-steel")).join(""),
-
-  sink: (x, y, w, h) =>
-    rect(x, y, w - 3, h - 5, "plan-steel") +
-    `<ellipse class="plan-glass" cx="${x}" cy="${(y + 0.8).toFixed(2)}" rx="${((w - 3) * 0.3).toFixed(2)}" ry="${((h - 5) * 0.26).toFixed(2)}" />` +
-    dot(x, y + 0.8, 0.6, "plan-dark") +
-    dot(x, y - (h - 5) / 2 + 1.6, 0.8, "plan-solid") +
-    line(x + (w - 3) / 2 - 3.4, y - (h - 5) / 2 + 1, x + (w - 3) / 2 - 3.4, y + (h - 5) / 2 - 1),
-
-  table: (x, y, w, h) =>
-    rect(x, y, w - 8, h - 7, "plan-wood", 1.6) +
-    spread(3, w - 6)
-      .flatMap((dx) => [
-        rect(x + dx, y - (h - 7) / 2 - 2, 3, 2.2, "plan-fabric", 0.5),
-        rect(x + dx, y + (h - 7) / 2 + 2, 3, 2.2, "plan-fabric", 0.5),
-      ])
-      .join("") +
-    spread(2, w - 14).map((dx) => dot(x + dx, y, 1.5, "plan-hollow")).join(""),
-
-  desk: (x, y, w, h) =>
-    rect(x, y - h * 0.12, w - 6, h * 0.38, "plan-wood") +
-    rect(x - w * 0.16, y - h * 0.16, w * 0.22, h * 0.12, "plan-dark", 0.3) +
-    rect(x + w * 0.06, y - h * 0.06, w * 0.2, h * 0.08, "plan-hollow", 0.3) +
-    rect(x + w * 0.26, y - h * 0.12, w * 0.14, h * 0.28, "plan-steel", 0.4) +
-    dot(x - w * 0.02, y + h * 0.2, 2.1, "plan-fabric"),
-
-  bed: (x, y, w, h) =>
-    rect(x, y, w - 8, h - 4, "plan-fabric", 1.2) +
-    rect(x, y - (h - 4) / 2 + 2.6, w - 10, 3.4, "plan-solid", 0.8) +
-    rect(x, y + 1.6, w - 10, h - 12, "plan-hollow", 1) +
-    rect(x, y - (h - 4) / 2 - 1, w - 8, 1.6, "plan-wood", 0.4),
-
-  sofa: (x, y, w, h) =>
-    rect(x, y, w - 7, h * 0.5, "plan-fabric", 1.4) +
-    spread(3, w - 12)
-      .map((dx) => rect(x + dx, y, (w - 13) / 3.4, h * 0.34, "plan-hollow", 1))
-      .join("") +
-    spread(2, w - 7).map((dx) => rect(x + dx, y, 2, h * 0.5, "plan-solid", 0.8)).join(""),
-
-  shower: (x, y, w, h) => {
-    const s = Math.min(w, h) - 6;
-    return (
-      rect(x, y, s, s, "plan-tile", 0.6) +
-      spread(3, s * 0.72).flatMap((dx) => spread(3, s * 0.72).map((dy) => line(x + dx - 1.2, y + dy, x + dx + 1.2, y + dy))).join("") +
-      `<path class="plan-line" d="M ${(x - s / 2).toFixed(2)} ${(y + s / 2).toFixed(2)} A ${s} ${s} 0 0 0 ${(x + s / 2).toFixed(2)} ${(y - s / 2).toFixed(2)}" />` +
-      dot(x, y, 0.9, "plan-dark")
-    );
-  },
-
-  washer: (x, y, w, h) => {
-    const s = Math.min(w, h) - 6;
-    return (
-      rect(x, y, s, s, "plan-solid") +
-      dot(x, y + 0.6, s * 0.28, "plan-glass") +
-      dot(x, y + 0.6, s * 0.16, "plan-hollow") +
-      rect(x, y - s / 2 + 1.4, s - 2, 1.6, "plan-steel", 0.3)
-    );
-  },
-
-  wardrobe: (x, y, w, h) =>
-    rect(x, y, w - 5, h * 0.34, "plan-wood") +
-    line(x, y - h * 0.17, x, y + h * 0.17) +
-    spread(2, 3).map((dx) => dot(x + dx, y + h * 0.1, 0.5, "plan-steel")).join("") +
-    `<path class="plan-line" d="M ${(x - (w - 5) / 2).toFixed(2)} ${(y + h * 0.17).toFixed(2)} A ${(w - 5) / 1.4} ${(w - 5) / 1.4} 0 0 0 ${(x + (w - 5) / 2).toFixed(2)} ${(y + h * 0.17).toFixed(2)}" />`,
-
-  printer: (x, y, w, h) =>
-    rect(x, y, w - 4, h - 5, "plan-solid") +
-    rect(x, y + 1.4, w - 8, 2.2, "plan-hollow", 0.3) +
-    rect(x, y - (h - 5) / 2 + 1.4, w - 9, 1.4, "plan-dark", 0.3) +
-    spread(3, 4).map((dx) => dot(x + dx + w * 0.24, y - 1.4, 0.4, "plan-steel")).join(""),
-
-  treadmill: (x, y, w, h) =>
-    spread(3, w - 8)
-      .map(
-        (dx) =>
-          rect(x + dx, y, w * 0.16, h - 6, "plan-dark", 1.4) +
-          rect(x + dx, y + 0.6, w * 0.1, h - 10, "plan-rubber", 0.8) +
-          rect(x + dx, y - (h - 6) / 2 + 1.4, w * 0.16, 1.6, "plan-steel", 0.5),
-      )
-      .join(""),
-
-  rack: (x, y, w, h) =>
-    rect(x, y - h * 0.16, w - 6, h * 0.18, "plan-steel") +
-    spread(2, w - 7).flatMap((dx) => [
-      dot(x + dx, y - h * 0.16, h * 0.16, "plan-rubber"),
-      dot(x + dx, y - h * 0.16, h * 0.08, "plan-dark"),
-    ]).join("") +
-    rect(x, y + h * 0.2, w * 0.42, h * 0.16, "plan-fabric", 0.8) +
-    rect(x, y, w - 4, h * 0.62, "plan-hollow", 1),
-
-  cables: (x, y, w, h) =>
-    rect(x, y - h * 0.14, w - 6, h * 0.16, "plan-steel") +
-    spread(2, w - 8).map((dx) => rect(x + dx, y - h * 0.14, 2.2, h * 0.16, "plan-dark", 0.3)).join("") +
-    rect(x, y - h * 0.14, w * 0.26, h * 0.12, "plan-rubber", 0.4) +
-    rect(x, y + h * 0.2, w * 0.34, h * 0.14, "plan-fabric", 0.8),
-
-  mat: (x, y, w, h) =>
-    spread(2, h - 6)
-      .map((dy, i) => rect(x, y + dy, w - 6, h * 0.28, i === 0 ? "plan-rubber" : "plan-fabric", 1))
-      .join("") +
-    spread(2, w - 14).map((dx) => rect(x + dx, y + h * 0.3, 3.4, 1.4, "plan-dark", 0.6)).join(""),
-
-  fountain: (x, y, w, h) =>
-    rect(x, y, Math.min(w, h) * 0.86, Math.min(w, h) * 0.7, "plan-tile", 0.5) +
-    dot(x, y, Math.min(w, h) * 0.3, "plan-steel") +
-    dot(x, y, Math.min(w, h) * 0.16, "plan-glass") +
-    dot(x, y, Math.min(w, h) * 0.05, "plan-dark") +
-    dot(x, y - Math.min(w, h) * 0.24, 0.6, "plan-dark") +
-    line(x - Math.min(w, h) * 0.32, y + Math.min(w, h) * 0.3, x + Math.min(w, h) * 0.32, y + Math.min(w, h) * 0.3),
-
-  sauna: (x, y, w, h) =>
-    rect(x, y, w - 4, h - 4, "plan-wood") +
-    spread(5, w - 7).map((dx) => line(x + dx, y - (h - 6) / 2, x + dx, y + (h - 6) / 2)).join("") +
-    rect(x + (w - 4) / 2 - 1.2, y, 1.6, (h - 4) * 0.42, "plan-glass", 0.3) +
-    rect(x, y - (h - 4) / 2 + 2, w - 9, 1.8, "plan-solid", 0.4),
-
-  lockers: (x, y, w, h) =>
-    rect(x, y - h * 0.06, w - 4, h * 0.3, "plan-locker") +
-    spread(5, w - 6).map((dx) => line(x + dx, y - h * 0.21, x + dx, y + h * 0.09)).join("") +
-    spread(5, w - 6).map((dx) => dot(x + dx + 1, y - h * 0.02, 0.4, "plan-steel")).join("") +
-    rect(x, y + h * 0.26, w - 9, h * 0.1, "plan-wood", 0.6),
-
-  produce: (x, y, w, h) =>
-    spread(3, h - 6)
-      .map(
-        (dy, row) =>
-          rect(x, y + dy, w - 6, h * 0.2, "plan-wood", 1.4) +
-          spread(4, w - 10)
-            .map((dx, i) => dot(x + dx, y + dy, 1.1, `plan-${crop(i + row).slice(2)}`))
-            .join(""),
-      )
-      .join(""),
-
-  stall: (x, y, w, h) =>
-    rect(x, y, w - 4, h * 0.46, "plan-wood", 0.6) +
-    spread(6, w - 6)
-      .map((dx, i) => dot(x + dx, y - h * 0.06, 1.2, `plan-${crop(i).slice(2)}`))
-      .join("") +
-    rect(x, y + h * 0.32, w - 4, 1.6, "plan-accent", 0.3),
-
-  storefront: (x, y, w, h) =>
-    rect(x, y, w - 3, h - 4, "plan-brick", 0.6) +
-    rect(x, y + (h - 4) / 2 - 1, w - 7, 2.6, "plan-glass", 0.3) +
-    rect(x + w * 0.26, y + (h - 4) / 2 - 1, w * 0.16, 2.6, "plan-dark", 0.3) +
-    rect(x, y + (h - 4) / 2 + 1.4, w - 3, 1.4, "plan-accent", 0.3) +
-    spread(3, w - 12).map((dx) => line(x + dx, y - (h - 4) / 2 + 1.6, x + dx, y + 1)).join(""),
-
-  carwash: (x, y, w, h) =>
-    rect(x, y, w - 4, h - 6, "plan-tile", 0.6) +
-    spread(2, w - 8).map((dx) => rect(x + dx, y, 2.6, h - 6, "plan-steel", 0.4)).join("") +
-    spread(2, w - 13).map((dx) => rect(x + dx, y, 1.8, h - 9, "plan-accent", 0.6)).join("") +
-    rect(x, y - (h - 6) / 2 - 1.2, w - 6, 1.4, "plan-dark", 0.3),
-
-  planter: (x, y, w, h) =>
-    rect(x, y, w - 4, h * 0.4, "plan-terracotta", 0.6) +
-    spread(3, w - 8).map((dx, i) => dot(x + dx, y, 1.7, `plan-${crop(i).slice(2)}`)).join("") +
-    spread(3, w - 8).map((dx) => dot(x + dx, y, 0.7, "plan-leaf")).join(""),
-};
 
 // ── Isometric prop helpers ────────────────────────────────────────────────
 
-/** A seat and a back — used at tables, benches and machines. */
-function seat(x: number, y: number, size: number, facing: 1 | -1): Part[] {
+/**
+ * A seat and a backrest. `back` says which side the backrest sits on, not
+ * which way the sitter looks — inverting that put every chair's back against
+ * the table it was pulled up to.
+ */
+function seat(x: number, y: number, size: number, back: 1 | -1): Part[] {
   return [
     box(x, y, size, size * 0.9, 1.5, "t-steel"),
     box(x, y, size * 0.9, size * 0.8, 0.5, "t-fabric", 1.5),
-    panel(x, y - facing * size * 0.42, size * 0.9, 2, 3, "t-fabric-flat"),
+    panel(x, y + back * size * 0.46, size * 0.9, 2, 3.2, "t-fabric-flat"),
   ];
 }
 
@@ -326,35 +105,50 @@ const PROP: Record<Fixture, PropFn> = {
     ];
   },
 
+  // An open gondola: a back panel, end posts and shelves. Modelled as a solid
+  // carcass with the stock inside, the goods were sealed in and only surfaced
+  // in whichever corner the sort happened to expose.
   shelving: (x, y, w, h) =>
-    spread(2, h - 6).flatMap((dy, run) => {
-      const d = h * 0.16;
+    spread(2, h - 8).flatMap((dy, run) => {
+      const uw = w - 5;
+      const d = 4.2;
+      const cy = y + dy;
+      const decks = [0.7, 3.5, 6.3];
       return [
-        box(x, y + dy, w - 5, d, 9, "t-steel"),
-        ...spread(2, 5.4).map((lift) =>
-          edge({ x: x - (w - 5) / 2, y: y + dy + d / 2 }, { x: x + (w - 5) / 2, y: y + dy + d / 2 }, "seam", 3 + lift, 3 + lift),
+        panel(x, cy - d / 2, uw, 0, 8.8, "t-steel-flat"),
+        ...[-1, 1].map((side) => box(x + (side * uw) / 2, cy, 1, d, 8.8, "t-steel")),
+        ...decks.map((deck) => slab(x, cy, uw - 1, d, "t-steel-top", deck)),
+        ...decks.slice(0, 2).flatMap((deck, row) =>
+          spread(4, uw - 6).map((dx, i) =>
+            box(x + dx, cy + 0.5, 2.4, 1.9, 2.2, crop(i + row + run), deck + 0.05),
+          ),
         ),
-        ...spread(4, w - 8).flatMap((dx, i) => [
-          box(x + dx, y + dy, 2.6, d * 0.5, 2, crop(i + run), 3.2),
-          box(x + dx, y + dy, 2.6, d * 0.5, 2, crop(i + run + 1), 6.2),
-        ]),
+        ...decks.map((deck) =>
+          edge({ x: x - uw / 2, y: cy + d / 2 }, { x: x + uw / 2, y: cy + d / 2 }, "shelf", deck, deck),
+        ),
       ];
     }),
 
+  // Same fix: an open-fronted cabinet with a glass door, so the stock reads
+  // through the glass instead of being sealed inside a solid block.
   fridge: (x, y, w, h) => {
-    const d = h - 6;
+    const d = h - 8;
+    const cw = w - 6;
+    const decks = [2.4, 5.2, 8];
     return [
-      box(x, y, w - 5, d, 11, "t-enamel"),
-      panel(x, y + d / 2, w - 8, 1.6, 8, "t-glass-flat"),
-      ...spread(3, 6).map((lift) =>
-        edge({ x: x - (w - 8) / 2, y: y + d / 2 }, { x: x + (w - 8) / 2, y: y + d / 2 }, "shelf", 3.4 + lift, 3.4 + lift),
+      panel(x, y - d / 2, cw, 0, 11, "t-steel-flat"),
+      ...[-1, 1].map((side) => box(x + (side * cw) / 2, y, 1, d, 11, "t-enamel")),
+      box(x, y, cw, d, 0.9, "t-enamel"),
+      box(x, y, cw, d, 1, "t-enamel", 10),
+      ...decks.map((deck) => slab(x, y, cw - 2, d - 0.6, "t-cold-top", deck)),
+      ...decks.slice(0, 2).flatMap((deck, row) =>
+        spread(3, cw - 7).map((dx, i) =>
+          box(x + dx, y + 0.4, 2.2, 1.8, 2.2, crop(i + row), deck + 0.05),
+        ),
       ),
-      ...spread(3, w - 11).flatMap((dx, i) => [
-        box(x + dx, y + d * 0.2, 2.2, 1.4, 2.2, crop(i), 2),
-        box(x + dx, y + d * 0.2, 2.2, 1.4, 2.2, crop(i + 2), 5),
-      ]),
-      edge({ x: x, y: y + d / 2 }, { x: x, y: y + d / 2 }, "handle", 3.5, 8.5),
-      slab(x, y, w - 6, d - 1, "t-cold-top", 11.1),
+      panel(x, y + d / 2, cw - 1.4, 1, 9, "t-glass-flat"),
+      edge({ x: x + cw * 0.3, y: y + d / 2 + 0.25 }, { x: x + cw * 0.3, y: y + d / 2 + 0.25 }, "handle", 3.5, 8),
+      slab(x, y, cw, d, "t-cold-top", 11.1),
     ];
   },
 
@@ -555,8 +349,8 @@ const PROP: Record<Fixture, PropFn> = {
       slab(x, y, w - 4, h - 4, "t-rubber-floor", 0.12),
       ...spread(2, w - 7).map((dx) => box(x + dx, back, 1.6, h * 0.18, 9, "t-steel")),
       ...spread(2, w - 7).flatMap((dx) => [
-        edge({ x: x + dx, y: back }, { x: x + dx, y: back }, "notch", 5, 5),
-        edge({ x: x + dx, y: back }, { x: x + dx, y: back }, "notch", 6.4, 6.4),
+        edge({ x: x + dx, y: back + h * 0.1 }, { x: x + dx, y: back + h * 0.1 }, "notch", 5, 5),
+        edge({ x: x + dx, y: back + h * 0.1 }, { x: x + dx, y: back + h * 0.1 }, "notch", 6.4, 6.4),
       ]),
       box(x, back, w - 5, 0.7, 0.7, "t-bar", 7),
       ...spread(2, w - 8).flatMap((dx) => [
@@ -580,7 +374,7 @@ const PROP: Record<Fixture, PropFn> = {
         edge({ x: x - w * 0.12, y: back + 1.2 }, { x: x + w * 0.12, y: back + 1.2 }, "seam", 1.4 + lift, 1.4 + lift),
       ),
       ...spread(2, w - 8).map((dx) =>
-        edge({ x: x + dx, y: back }, { x: x + dx, y: back }, "cable", 11.2, 7.5),
+        edge({ x: x + dx, y: back + 0.8 }, { x: x + dx, y: back + 0.8 }, "cable", 11.2, 7.5),
       ),
       ...seat(x, y + h * 0.26, 4, 1),
       box(x, y + h * 0.06, w * 0.34, 1.2, 1.4, "t-steel"),
@@ -632,7 +426,7 @@ const PROP: Record<Fixture, PropFn> = {
       slab(x, y, sw + 1.4, sd + 1.4, "t-wood-dark-top", 11.1),
       panel(x - sw * 0.1, y + sd / 2, sw * 0.34, 0.6, 6.4, "t-door"),
       panel(x - sw * 0.1, y + sd / 2, sw * 0.2, 4.4, 2.2, "t-glass-flat"),
-      edge({ x: x + sw * 0.04, y: y + sd / 2 }, { x: x + sw * 0.04, y: y + sd / 2 }, "handle", 3.4, 4.4),
+      edge({ x: x + sw * 0.04, y: y + sd / 2 + 0.25 }, { x: x + sw * 0.04, y: y + sd / 2 + 0.25 }, "handle", 3.4, 4.4),
       panel(x + sw * 0.22, y + sd / 2, sw * 0.22, 7.4, 1.4, "t-sign"),
     ];
   },
@@ -708,8 +502,8 @@ const PROP: Record<Fixture, PropFn> = {
           edge({ x: x + dx - 0.8, y: y + (d - 2) / 2 }, { x: x + dx + 0.8, y: y + (d - 2) / 2 }, "bristle", 1.4 + lift, 1.4 + lift),
         ),
       ),
-      box(x - (w - 7) / 2, y + d * 0.4, 2, 1.4, 3, "t-dark"),
-      panel(x - (w - 7) / 2, y + d * 0.4, 1.4, 2.2, 1, "t-screen"),
+      box(x - (w - 7) / 2 - 1.4, y + d * 0.4, 2, 1.4, 3, "t-dark"),
+      panel(x - (w - 7) / 2 - 1.4, y + d * 0.4 + 0.9, 1.4, 2.2, 1, "t-screen"),
     ];
   },
 
@@ -730,10 +524,6 @@ const PROP: Record<Fixture, PropFn> = {
 };
 
 export const FIXTURES = Object.keys(PROP) as Fixture[];
-
-export function planSymbol(place: Place): string {
-  return PLAN[place.fixture](place.at.x, place.at.y, place.w, place.h);
-}
 
 /** Unsorted parts — exported so the draw order can be tested directly. */
 export function isoParts(place: Place): Part[] {
