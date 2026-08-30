@@ -185,6 +185,49 @@ rediscovering them.
   running. Use `astro dev status` / `logs` / `stop`. The dev URL includes the
   base path — the bare root 404s.
 
+## Game design
+
+This week's prototype is "Today's Shift" — a deterministic, date-seeded
+task-ordering puzzle. Decisions here won't be re-derivable from the code
+alone, so they're written down rather than left implicit:
+
+- **One mechanic, two phases.** The only player action is dragging a task
+  list into order and committing it. Planning is a top-down directory-board
+  view (all tasks, locations, live constraint state visible — diegetically a
+  map the character would plausibly carry, not omniscience). Playback is a
+  non-interactive, snappy isometric replay of the committed order. No direct
+  movement or camera control at any point, in either phase.
+- **Deterministic by seed, not by server.** A mulberry32 PRNG seeded from the
+  calendar date drives every day's scenario, task selection, and constraint
+  parameters. Same date, same shift, everywhere, forever — no backend, no
+  drift. Random Shift seeds independently (`Date.now()`) and never touches
+  Today's Shift's recorded stats.
+- **The deadline is computed, not authored.** Brute-force the optimal task
+  ordering (feasible at ≤6 tasks), multiply by a fixed margin (×1.2). Tight
+  but always achievable by construction — this is also the game's one
+  formally tested rule (`src/lib/route.test.ts`: the optimal ordering always
+  meets the deadline it produced).
+- **Loss is clean, not partial.** Exceeding the deadline ends the shift. No
+  partial credit, no "almost." A wrong order is just wrong.
+- **First attempt is the score; everything after is practice.** Today's
+  Shift's first attempt each day is what's recorded and shareable. Retries
+  are encouraged (especially right after a loss) but are visibly labelled
+  "practice — not counted," so a retry is never mistaken for the real score.
+- **Premium execution of a deliberately simple art style.** Lo-fi/low-poly is
+  an aesthetic choice, not a budget constraint: flat-shaded polygons and a
+  restrained palette, but with a consistent stroke weight, considered
+  typography, eased motion (nothing snaps into place with a raw jump-cut),
+  and small satisfying feedback on every interaction (drag lift, commit
+  confirmation, win/loss reveal). Craft shows in consistency and restraint,
+  not in additional visual complexity.
+- **Scenario variety is a content problem, not an engine problem.** New
+  scenarios are new entries in `src/lib/data/scenarios.ts` (a task pool +
+  weekday/weekend flag), never new engine code. Starting six: Getting Ready,
+  Work Day, Gym Session, Grocery Run, Cooking (weekday pool, plus Grocery Run
+  and Cooking again on weekends), and Weekend Errands (weekend-only) — this
+  is the deliberate lever for keeping the puzzle feeling different day to day
+  without touching `route.ts`, `generate.ts`, or the renderer.
+
 ## This file is yours
 
 This CLAUDE.md is a starting point, not a fixed rulebook. As you learn what your
