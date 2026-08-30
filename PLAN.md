@@ -83,9 +83,24 @@ gyms, supermarkets or offices, and the CC0 isometric tilesets that do exist
 are 2:1 dimetric, which cannot be mixed with true 30° geometry. Vector also
 follows the light/dark palette, which baked-in sprite colours cannot.
 
-**Done when:** manual browser pass — a stranger can tell a gym from a kitchen
-from a supermarket with the labels covered, in both themes.
-*(Done 2026-08-30: checked in light and dark at 1440×900.)*
+Props carry materials rather than shapes — wood, steel, enamel, glass, rubber,
+fabric, brick, terracotta — so colour is what tells a gym from a kitchen. Draw
+order is derived from the geometry, never from authoring order.
+
+**Done when:**
+- `src/game/iso.test.ts` passes — the occlusion test and the four ordering
+  regressions that actually shipped (desk legs over the desktop, a splashback
+  in front of its own hob, a screen under its stand, a worktop under its
+  cabinet).
+- `src/game/fixtures.test.ts` passes — every fixture is at least eight parts,
+  no two render identically, and no prop has a part drawn in front of one that
+  hides it, checked at every footprint the scenarios use.
+- `src/game/materials.test.ts` passes — it reads `global.css` and fails if a
+  material a prop names sets no `--tone`, `fill` or `stroke`. Both the black
+  produce discs and the entirely black floor plan were this bug.
+- Manual browser pass: a stranger can tell a gym from a kitchen from a
+  supermarket with the labels covered, in both themes.
+  *(Done 2026-08-30: checked in light and dark at 1440×900.)*
 
 ### The two cameras — `src/game/PlanningBoard.ts`, `src/game/Playback.ts`
 

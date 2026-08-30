@@ -238,10 +238,35 @@ alone, so they're written down rather than left implicit:
   isometric prop. Plan symbols are abstract by convention, which is exactly
   the lo-fi register the rest of the game is in.
 - **One light source, declared once.** Isometric props are built only from the
-  primitives in `game/iso.ts`, and a prop picks a `--tone`; the three faces
-  derive from it in CSS. Never shade a face by hand and never add a second
-  light direction — that consistency is what makes flat polygons read as a
-  deliberate style rather than as clip art.
+  primitives in `game/iso.ts`, and a prop picks a material; the three faces
+  derive from its `--tone` in CSS. Never shade a face by hand and never add a
+  second light direction — that consistency is what makes flat polygons read
+  as a deliberate style rather than as clip art.
+- **Materials, not shapes.** Every part names a material — `t-wood`,
+  `t-steel`, `t-enamel`, `t-glass`, `t-rubber`, `t-fabric`, `t-brick`,
+  `t-locker`, `t-terracotta`, the crop colours — and materials carry colour.
+  Untinted geometry is the failure mode this whole section exists to prevent:
+  a fridge is cold white behind glass, a sauna is warm timber, a rack is steel
+  with red plates. If two fixtures come out the same colour, one of them has
+  picked the wrong material. `materials.test.ts` reads the real stylesheet and
+  fails if a class a prop names sets no `--tone`, no `fill`, or no `stroke`
+  — a tone-only class leaves a disc rendering solid black.
+- **Detail is what separates a thing from a diagram.** Handles, seams, control
+  fascias, stock on the shelves, plates on the bar, produce in the crates,
+  mullions in the glass. Every prop is at least eight parts and
+  `fixtures.test.ts` holds that floor, along with "no two fixtures render
+  identically". Four flat boxes is a PowerPoint slide, and that is the bar
+  this game has already failed once.
+- **Never trust authoring order.** `iso.ts` returns each primitive with its
+  bounding box and `render` sorts by the standard isometric occlusion test
+  (`b` hides `a` only if it is wholly beyond it along one axis). Authoring
+  order shipped desk legs painted over the desktop they hold up, a cooker's
+  splashback floating in front of its own hob, and a weight stack detached
+  from its frame. `iso.test.ts` is those exact regressions, and
+  `fixtures.test.ts` re-checks the ordering for every fixture at every
+  footprint the scenarios give it. If the sort ever has to fall back — which
+  it does only for genuinely interpenetrating geometry — fix the model, don't
+  reorder the code.
 - **Authored vector, not sprite art — and here's why.** The palette is a set
   of custom properties that swap wholesale between light and dark themes, and
   baked-in sprite colours can't follow that. It also survives both marking

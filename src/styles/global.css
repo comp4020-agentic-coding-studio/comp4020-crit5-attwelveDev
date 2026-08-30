@@ -46,13 +46,37 @@
   --room: #eae3d1;
   --room-warn: #f3e2c6;
   --plan-fill: #cabfa4;
-  --prop-base: #d9cfb4;
+  --prop-base: #cfc7b2;
   --prop-dark: #4a4338;
   --prop-light: #f2ece0;
   --metal: #8f959c;
-  --wood: #b98b52;
+  --wood: #b5824a;
   --fresh: #7fa64a;
   --actor: #16695a;
+
+  /* Materials. Every prop part picks one of these; colour is what stops a
+     gym and a kitchen rendering as the same pile of boxes. */
+  --m-wood: #b5824a;
+  --m-wood-dark: #7d5730;
+  --m-steel: #b3b9c0;
+  --m-enamel: #efe9dd;
+  --m-dark: #3b3a41;
+  --m-glass: #bcd6de;
+  --m-rubber: #45484f;
+  --m-fabric: #8fa2ae;
+  --m-locker: #6c8497;
+  --m-tile: #dde5e3;
+  --m-brick: #c1795a;
+  --m-terracotta: #c07a51;
+  --m-screen: #24303a;
+  --m-soil: #6b563e;
+  --m-leaf: #6d9a41;
+  --m-plate: #a8434a;
+  --m-awning: #c8563f;
+  --m-awning-alt: #f0e7d6;
+  --m-crop-a: #7fa64a;
+  --m-crop-b: #dd8b32;
+  --m-crop-c: #b8434a;
   --t-1: 0.75rem;
   --t-2: 0.8125rem;
   --t-3: 0.9375rem;
@@ -106,6 +130,27 @@
     --wood: #8a6134;
     --fresh: #6d9445;
     --actor: #4cbb9d;
+    --m-wood: #8a6134;
+    --m-wood-dark: #5d4023;
+    --m-steel: #7e8695;
+    --m-enamel: #8d8a83;
+    --m-dark: #26252d;
+    --m-glass: #4e6f7b;
+    --m-rubber: #2e3036;
+    --m-fabric: #5c6f80;
+    --m-locker: #47606f;
+    --m-tile: #7c8a88;
+    --m-brick: #8a5240;
+    --m-terracotta: #8c563a;
+    --m-screen: #16202a;
+    --m-soil: #45372a;
+    --m-leaf: #4e7530;
+    --m-plate: #8a3038;
+    --m-awning: #9c4231;
+    --m-awning-alt: #b6ab97;
+    --m-crop-a: #5f8437;
+    --m-crop-b: #a8672a;
+    --m-crop-c: #8a3038;
     --lift: 0 1px 0 rgb(0 0 0 / 30%), 0 6px 18px rgb(0 0 0 / 35%);
     --lift-high: 0 2px 0 rgb(0 0 0 / 35%), 0 18px 38px rgb(0 0 0 / 50%);
   }
@@ -402,6 +447,95 @@ a:focus-visible {
   }
 }
 
+
+/* Plan-view materials. The floor plan is a drawing, not a render, but it
+   carries the same colours as the props so the two views read as one place. */
+
+.plan-wood,
+.plan-steel,
+.plan-cold,
+.plan-dark,
+.plan-glass,
+.plan-fabric,
+.plan-tile,
+.plan-locker,
+.plan-brick,
+.plan-terracotta,
+.plan-accent,
+.plan-rubber,
+.plan-leaf,
+.plan-crop-a,
+.plan-crop-b,
+.plan-crop-c {
+  stroke: var(--outline);
+  stroke-width: 0.45;
+  stroke-linejoin: round;
+}
+
+.plan-wood {
+  fill: var(--m-wood);
+}
+
+.plan-steel {
+  fill: var(--m-steel);
+}
+
+.plan-cold {
+  fill: color-mix(in srgb, var(--m-glass) 45%, white);
+}
+
+.plan-dark {
+  fill: var(--m-dark);
+}
+
+.plan-glass {
+  fill: color-mix(in srgb, var(--m-glass) 70%, white);
+}
+
+.plan-fabric {
+  fill: var(--m-fabric);
+}
+
+.plan-tile {
+  fill: var(--m-tile);
+}
+
+.plan-locker {
+  fill: var(--m-locker);
+}
+
+.plan-brick {
+  fill: var(--m-brick);
+}
+
+.plan-terracotta {
+  fill: var(--m-terracotta);
+}
+
+.plan-accent {
+  fill: var(--accent);
+}
+
+.plan-rubber {
+  fill: var(--m-rubber);
+}
+
+.plan-leaf {
+  fill: var(--m-leaf);
+}
+
+.plan-crop-a {
+  fill: var(--m-crop-a);
+}
+
+.plan-crop-b {
+  fill: var(--m-crop-b);
+}
+
+.plan-crop-c {
+  fill: var(--m-crop-c);
+}
+
 /* ── Playback scene (isometric) ─────────────────────────────────────────── */
 
 /*
@@ -452,92 +586,6 @@ a:focus-visible {
 
 .top-light {
   fill: color-mix(in srgb, var(--tone) 84%, white);
-}
-
-/* Prop tones — the only thing a fixture chooses. */
-
-.leg,
-.stack,
-.door,
-.screen {
-  --tone: var(--prop-dark);
-}
-
-.bar,
-.tap {
-  --tone: var(--metal);
-}
-
-.timber,
-.crate {
-  --tone: var(--wood);
-}
-
-.awning,
-.brush {
-  --tone: var(--accent);
-}
-
-.pillow,
-.tray {
-  --tone: var(--prop-light);
-}
-
-.glass {
-  --tone: var(--prop-light);
-
-  opacity: 0.45;
-}
-
-/* Flat details drawn onto a surface. */
-
-.hob,
-.porthole {
-  fill: var(--prop-dark);
-  stroke: var(--outline);
-  stroke-width: 0.3;
-}
-
-.basin,
-.belt {
-  fill: color-mix(in srgb, var(--prop-base) 62%, var(--shade));
-  stroke: var(--outline);
-  stroke-width: 0.3;
-}
-
-.plate {
-  fill: var(--prop-dark);
-  stroke: var(--outline);
-  stroke-width: 0.3;
-}
-
-.mat-pad {
-  fill: var(--accent);
-  stroke: var(--outline);
-  stroke-width: 0.3;
-  opacity: 0.8;
-}
-
-.produce-heap,
-.foliage {
-  fill: var(--fresh);
-  stroke: var(--outline);
-  stroke-width: 0.3;
-}
-
-.seam,
-.handle,
-.window,
-.sign {
-  stroke: var(--outline);
-  stroke-width: 0.4;
-  stroke-linecap: round;
-}
-
-.handle,
-.sign {
-  stroke: var(--metal);
-  stroke-width: 0.7;
 }
 
 .plinth-name {
@@ -601,6 +649,217 @@ a:focus-visible {
     opacity: 0;
     scale: 1.2;
   }
+}
+
+
+/* ── Materials ──────────────────────────────────────────────────────────── */
+
+/*
+  A part sets `--tone` and the three faces derive from it, so a material is a
+  single declaration and the light direction can never drift between props.
+  `-flat`, `-top` and `-pad` variants are for parts drawn as a single surface
+  (upright panels, worktops) which take the colour directly.
+*/
+
+.t-wood {
+  --tone: var(--m-wood);
+
+  fill: var(--m-wood);
+}
+
+.t-wood-dark {
+  --tone: var(--m-wood-dark);
+
+  fill: var(--m-wood-dark);
+}
+
+.t-steel {
+  --tone: var(--m-steel);
+
+  fill: var(--m-steel);
+}
+
+.t-enamel {
+  --tone: var(--m-enamel);
+
+  fill: var(--m-enamel);
+}
+
+.t-dark {
+  --tone: var(--m-dark);
+
+  fill: var(--m-dark);
+}
+
+.t-glass {
+  --tone: var(--m-glass);
+
+  fill: var(--m-glass);
+  opacity: 0.55;
+}
+
+.t-rubber {
+  --tone: var(--m-rubber);
+
+  fill: var(--m-rubber);
+}
+
+.t-fabric {
+  --tone: var(--m-fabric);
+
+  fill: var(--m-fabric);
+}
+
+.t-fabric-soft {
+  --tone: color-mix(in srgb, var(--m-fabric) 78%, white);
+
+  fill: color-mix(in srgb, var(--m-fabric) 78%, white);
+}
+
+.t-locker {
+  --tone: var(--m-locker);
+
+  fill: var(--m-locker);
+}
+
+.t-tile {
+  --tone: var(--m-tile);
+
+  fill: var(--m-tile);
+}
+
+.t-brick {
+  --tone: var(--m-brick);
+
+  fill: var(--m-brick);
+}
+
+.t-terracotta {
+  --tone: var(--m-terracotta);
+
+  fill: var(--m-terracotta);
+}
+
+.t-screen-pad {
+  --tone: var(--m-screen);
+
+  fill: var(--m-screen);
+}
+
+.t-bar {
+  --tone: color-mix(in srgb, var(--m-steel) 74%, white);
+
+  fill: color-mix(in srgb, var(--m-steel) 74%, white);
+}
+
+.t-brush {
+  --tone: var(--accent);
+
+  fill: var(--accent);
+}
+
+.t-crop-a {
+  --tone: var(--m-crop-a);
+
+  fill: var(--m-crop-a);
+}
+
+.t-crop-b {
+  --tone: var(--m-crop-b);
+
+  fill: var(--m-crop-b);
+}
+
+.t-crop-c {
+  --tone: var(--m-crop-c);
+
+  fill: var(--m-crop-c);
+}
+
+.t-awning {
+  --tone: var(--m-awning);
+
+  fill: var(--m-awning);
+}
+
+.t-awning-alt {
+  --tone: var(--m-awning-alt);
+
+  fill: var(--m-awning-alt);
+}
+
+/* Single-surface parts. */
+
+.t-worktop { fill: var(--m-wood-dark); }
+.t-wood-top { fill: color-mix(in srgb, var(--m-wood) 88%, white); }
+.t-wood-dark-top { fill: var(--m-wood-dark); }
+.t-steel-top { fill: color-mix(in srgb, var(--m-steel) 88%, white); }
+.t-enamel-top { fill: var(--m-enamel); }
+.t-dark-top { fill: var(--m-dark); }
+.t-cold-top { fill: color-mix(in srgb, var(--m-glass) 60%, white); }
+.t-hobtop { fill: var(--m-dark); }
+.t-hob { fill: color-mix(in srgb, var(--m-dark) 70%, black); }
+.t-hob-inner { fill: var(--warn); }
+.t-knob { fill: var(--m-steel); }
+.t-lamp { fill: var(--warn); }
+.t-basin { fill: color-mix(in srgb, var(--m-steel) 62%, black); }
+.t-drain { fill: var(--m-dark); }
+.t-mattress { fill: var(--m-enamel); }
+.t-paper { fill: var(--m-enamel); }
+.t-plate { fill: var(--m-plate); }
+.t-plate-hub { fill: var(--m-steel); }
+.t-mug { fill: var(--m-crop-c); }
+.t-soil { fill: var(--m-soil); }
+.t-leaf { fill: var(--m-leaf); }
+.t-leaf-light { fill: color-mix(in srgb, var(--m-leaf) 74%, white); }
+.t-rubber-top { fill: color-mix(in srgb, var(--m-rubber) 82%, white); }
+.t-rubber-floor { fill: var(--m-rubber); }
+.t-mat-alt { fill: var(--accent); }
+.t-fabric-top { fill: var(--m-fabric); }
+.t-wet { fill: color-mix(in srgb, var(--m-tile) 74%, var(--m-glass)); }
+.t-roof { fill: color-mix(in srgb, var(--m-brick) 70%, black); }
+
+/* Upright panels facing the camera. */
+
+.t-screen { fill: var(--m-screen); }
+
+.t-glass-flat {
+  fill: var(--m-glass);
+  opacity: 0.72;
+}
+.t-dark-flat { fill: var(--m-dark); }
+.t-fabric-flat { fill: color-mix(in srgb, var(--m-fabric) 86%, black); }
+.t-wood-flat { fill: var(--m-wood-dark); }
+.t-steel-flat { fill: color-mix(in srgb, var(--m-steel) 80%, black); }
+.t-door { fill: var(--m-wood-dark); }
+.t-sign { fill: var(--accent); }
+
+/* Drawn detail lines. */
+
+.seam,
+.plank,
+.grain,
+.course,
+.mullion,
+.grout,
+.shelf,
+.notch,
+.vent,
+.rim,
+.bristle {
+  stroke: var(--outline);
+  stroke-width: 0.35;
+  stroke-linecap: round;
+  opacity: 0.55;
+}
+
+.handle,
+.spout,
+.cable,
+.sign {
+  stroke: var(--m-steel);
+  stroke-width: 0.7;
+  stroke-linecap: round;
 }
 
 /* ── Panel ──────────────────────────────────────────────────────────────── */
