@@ -260,6 +260,23 @@ alone, so they're written down rather than left implicit:
   Shift's first attempt each day is what's recorded and shareable. Retries
   are encouraged (especially right after a loss) but are visibly labelled
   "practice — not counted," so a retry is never mistaken for the real score.
+- **Today's result stays on screen for the rest of the day.** `Result` keeps
+  the committed `order`, not just the outcome, so reopening Today's Shift
+  after already playing reconstructs the same run (`simulateOrder`) and jumps
+  straight to the result screen — `SceneHandle.snap()` places the character
+  at its final frame instantly, no replayed animation — rather than dropping
+  the player back into a blank planning screen as if nothing happened. "Run
+  it again" and "Another shift" work from that reopened state exactly as
+  they do right after a fresh finish, since both only ever depend on `shift`
+  and `order` already being set, never on how the result screen was reached.
+- **Stats read the same store the game already writes.** The `/stats/` page
+  has no state of its own — `stats()` in `lib/stats.ts` derives every number
+  (played, win rate, current and max streak) from the same `Record` that
+  `recordFirstAttempt` writes, scanned fresh on each visit. `maxStreak` scans
+  every recorded date, not just the run still live today, so a lapsed streak
+  stays visible after it breaks — and a gap in play (a day never recorded at
+  all) ends a streak the same as a loss does, checked by comparing
+  consecutive calendar dates, not consecutive store entries.
 - **Premium execution of a deliberately simple art style.** Lo-fi/low-poly is
   an aesthetic choice, not a budget constraint: flat-shaded polygons and a
   restrained palette, but with a consistent stroke weight, considered

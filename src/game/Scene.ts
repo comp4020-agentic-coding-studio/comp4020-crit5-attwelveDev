@@ -318,6 +318,13 @@ export type SceneHandle = {
   /** Redraw the route and markers for a committed order. Cheap; call on drag. */
   setOrder(shift: Shift, order: readonly string[]): void;
   play(shift: Shift, run: Run, stopAt: number, hooks: PlaybackHooks): void;
+  /**
+   * Place the character at minute `t` of `run` instantly — no animation, no
+   * `raf` loop. For a shift already played today: the result screen it
+   * reopens to should look like playback just finished, not like it's about
+   * to start.
+   */
+  snap(shift: Shift, run: Run, t: number): void;
   stop(): void;
 };
 
@@ -470,6 +477,13 @@ export function createScene(svg: SVGSVGElement): SceneHandle {
         else hooks.onEnd(frame);
       };
       raf = globalThis.requestAnimationFrame(tick);
+    },
+
+    snap(shift, run, t) {
+      globalThis.cancelAnimationFrame(raf);
+      const frame = frameAt(shift, run, t);
+      moveActor(frame);
+      highlight(frame.step?.task.place);
     },
 
     stop() {

@@ -1268,6 +1268,75 @@ a:focus-visible {
   }
 }
 
+/* ── Stats page ─────────────────────────────────────────────────────────── */
+
+.app-stats {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+}
+
+.stats-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+  max-width: 40rem;
+  padding: var(--s-6) var(--s-5);
+  margin: 0 auto;
+}
+
+.stats-empty {
+  color: var(--muted);
+}
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: var(--s-3);
+}
+
+/* `display: grid` above otherwise wins the cascade over the `hidden`
+   attribute's own UA rule, since both have equal specificity and this one
+   comes later — so hiding the grid needs to be said explicitly. */
+.stat-grid[hidden] {
+  display: none;
+}
+
+.stat-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+  padding: var(--s-4);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-2);
+  box-shadow: var(--lift);
+}
+
+.stat-card span {
+  font-size: var(--t-1);
+  color: var(--muted);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.stat-card strong {
+  font-family: var(--display);
+  font-size: var(--t-6);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (width <= 56rem) {
+  .stats-page {
+    padding: var(--s-5) var(--s-4);
+  }
+
+  .stat-card strong {
+    font-size: var(--t-5);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

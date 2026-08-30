@@ -4,7 +4,7 @@ import { simulateOrder, type Run } from "../lib/route";
 import {
   recordFirstAttempt,
   recordFor,
-  summary,
+  stats,
   type Outcome,
 } from "../lib/stats";
 import type { Shift } from "../lib/types";
@@ -108,12 +108,12 @@ export function mountGame(): void {
     }
 
     const streak = need<HTMLElement>("#streak");
-    const stats = shift.dateKey ? summary(shift.dateKey) : null;
-    const tally = stats ? `made ${stats.madeIt} of ${stats.played}` : "";
-    streak.textContent = !stats || stats.played === 0
+    const daily = shift.dateKey ? stats(shift.dateKey) : null;
+    const tally = daily ? `made ${daily.madeIt} of ${daily.played}` : "";
+    streak.textContent = !daily || daily.played === 0
       ? ""
-      : stats.streak > 0
-        ? `${plural(stats.streak, "day", "days")} on the trot · ${tally}`
+      : daily.currentStreak > 0
+        ? `${plural(daily.currentStreak, "day", "days")} on the trot · ${tally}`
         : tally;
   }
 
@@ -121,18 +121,36 @@ export function mountGame(): void {
     scene.stop();
     shift = next;
     mode = nextMode;
-    practice =
+    const played =
       nextMode === "today" && shift.dateKey !== null
-        ? recordFor(shift.dateKey) !== null
-        : false;
-    order = shift.tasks.map((task) => task.id);
+        ? recordFor(shift.dateKey)
+        : null;
+    practice = played !== null;
+    order = played ? [...played.order] : shift.tasks.map((task) => task.id);
     resultPanel.innerHTML = "";
     list.render(shift, order);
+    scene.build(shift);
+    paintHeader();
+
+    if (played) {
+      // Today's already been played: show what actually happened, not a
+      // blank planning screen — "Run it again"/"Another shift" still work
+      // from here exactly as they do after a fresh finish.
+      const run = simulateOrder(shift, played.order);
+      const stopAt = run.feasible
+        ? run.total
+        : (run.steps[run.steps.length - 1]?.arrive ?? 0);
+      list.setEnabled(false);
+      list.setActive(null);
+      scene.snap(shift, run, stopAt);
+      setPhase("result");
+      renderResult(run, outcomeOf(shift, run), true);
+      return;
+    }
+
     list.setEnabled(true);
     list.setActive(null);
-    scene.build(shift);
     scene.setOrder(shift, order);
-    paintHeader();
     setPhase("planning");
   }
 
@@ -200,7 +218,7 @@ export function mountGame(): void {
 <div class="actions">
   <button type="button" id="again" class="ghost">Run it again</button>
   <button type="button" id="another" class="ghost">Another shift</button>
-  ${recorded ? `<button type="button" id="copy" class="ghost">Copy result</button>` : ""}
+  ${recorded ? `<button type="button" id="share" class="ghost">Share</button>` : ""}
 </div>`;
 
     need<HTMLButtonElement>("#again").addEventListener("click", () => {
@@ -218,15 +236,15 @@ export function mountGame(): void {
       start(generateRandom(Math.floor(Math.random() * 2 ** 31)), "random");
     });
 
-    const copy = document.querySelector<HTMLButtonElement>("#copy");
-    copy?.addEventListener("click", () => {
+    const share = document.querySelector<HTMLButtonElement>("#share");
+    share?.addEventListener("click", () => {
       const text = `Today's Shift ${shift.dateKey}\n${shift.title} · ${verdict.toLowerCase()} ${clockAt(shift.startClock, Number.isFinite(run.total) ? run.total : shift.deadline)}/${clockAt(shift.startClock, shift.deadline)}\n${squares(shift, run)}`;
       navigator.clipboard?.writeText(text).then(
         () => {
-          copy.textContent = "Copied";
+          share.textContent = "Copied";
         },
         () => {
-          copy.textContent = "Couldn't copy";
+          share.textContent = "Couldn't copy";
         },
       );
     });
@@ -250,6 +268,7 @@ export function mountGame(): void {
             outcome,
             total: run.total,
             deadline: shift.deadline,
+            order: [...order],
           })
         : false;
 

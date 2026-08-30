@@ -1,0 +1,64 @@
+---
+import "../styles/global.css";
+---
+
+<!doctype html>
+<html lang="en-AU">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Stats — Today's Shift</title>
+    <meta
+      name="description"
+      content="Your Today's Shift history: games played, win rate, and your current and best streaks."
+    />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="../card.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+  </head>
+  <body>
+    <div class="app-stats">
+      <header class="topbar">
+        <p class="brand">Today&rsquo;s Shift</p>
+        <nav aria-label="Primary">
+          <a href="../">Today</a>
+          <a href="../?shift=random">Random</a>
+          <a href="./" aria-current="page">Stats</a>
+        </nav>
+      </header>
+
+      <main class="stats-page">
+        <h1>Your stats</h1>
+        <p class="stats-empty" id="stats-empty" hidden>
+          Play Today&rsquo;s Shift to start building a history.
+        </p>
+        <div class="stat-grid" id="stat-grid">
+          <p class="stat-card">
+            <span>Games played</span><strong id="stat-played">0</strong>
+          </p>
+          <p class="stat-card">
+            <span>Win %</span><strong id="stat-winrate">0%</strong>
+          </p>
+          <p class="stat-card">
+            <span>Current streak</span><strong id="stat-current">0</strong>
+          </p>
+          <p class="stat-card">
+            <span>Max streak</span><strong id="stat-max">0</strong>
+          </p>
+          <p class="stat-card">
+            <span>Made it</span><strong id="stat-madeit">0</strong>
+          </p>
+          <p class="stat-card">
+            <span>Ran out / blocked</span><strong id="stat-lost">0</strong>
+          </p>
+        </div>
+      </main>
+    </div>
+
+    <script>
+      import { mountStats } from "../game/statsPage";
+      mountStats();
+    </script>
+  </body>
+</html>
