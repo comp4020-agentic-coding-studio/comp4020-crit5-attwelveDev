@@ -220,6 +220,44 @@ alone, so they're written down rather than left implicit:
   and small satisfying feedback on every interaction (drag lift, commit
   confirmation, win/loss reveal). Craft shows in consistency and restraint,
   not in additional visual complexity.
+- **Every place looks like the place it is.** A gym is treadmills, racks, mats
+  and lockers; a kitchen is a stove, an oven and a sink; a supermarket is
+  produce bins, a deli counter and freezer cabinets. Generic boxes with names
+  floating over them are not acceptable — if you can swap two scenarios'
+  artwork without noticing, the art has failed. This is enforced by data:
+  every entry in `Scenario.places` names a `fixture` from the shared
+  vocabulary in `types.ts`, and `game/fixtures.ts` draws it.
+- **Layouts are believable floor plans, not scattered points.** Supermarket
+  departments run round the perimeter with dry goods down the middle; kitchen
+  counters line the walls; a high street is two rows of shopfronts. Getting
+  the plan right is most of what makes a place read as itself, and it's free —
+  it's just coordinates.
+- **The two views are a plan and a room.** Planning draws each place as an
+  architect's floor-plan symbol (a stove is a square with four rings, a bed is
+  a rectangle with a pillow band). Playback draws the same object as an
+  isometric prop. Plan symbols are abstract by convention, which is exactly
+  the lo-fi register the rest of the game is in.
+- **One light source, declared once.** Isometric props are built only from the
+  primitives in `game/iso.ts`, and a prop picks a `--tone`; the three faces
+  derive from it in CSS. Never shade a face by hand and never add a second
+  light direction — that consistency is what makes flat polygons read as a
+  deliberate style rather than as clip art.
+- **Authored vector, not sprite art — and here's why.** The palette is a set
+  of custom properties that swap wholesale between light and dark themes, and
+  baked-in sprite colours can't follow that. It also survives both marking
+  viewports without resampling. Free CC0 art was investigated properly before
+  this was settled: Kenney's packs (all CC0) have no gym, office, supermarket
+  or kitchen *interior* art in 2D at any projection; his Furniture Kit ships
+  isometric renders but its angle is undocumented; the CC0 isometric tilesets
+  that do exist (Screaming Brain, Kenney's Isometric Miniature series) are 2:1
+  dimetric and so cannot be mixed with true 30° geometry. The one third-party
+  asset worth taking is the display typeface.
+- **The pixel face is a display face, and never carries a number.** Pixelify
+  Sans (OFL, self-hosted in `public/fonts/` with its licence) sets the wordmark,
+  headings, the verdict and the commit button. It does not set clocks, task
+  numbers or map pins: at those sizes its 2, 3, 5 and 8 are indistinguishable,
+  and it rendered a HUD clock reading `18:31` as `17:88`. Lo-fi is a look the
+  game wears, not a tax it charges the player for reading.
 - **Scenario variety is a content problem, not an engine problem.** New
   scenarios are new entries in `src/lib/data/scenarios.ts` (a task pool +
   weekday/weekend flag), never new engine code. Starting six: Getting Ready,

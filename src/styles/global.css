@@ -1,4 +1,19 @@
 /*
+  Pixelify Sans (SIL Open Font License 1.1 — see public/fonts/OFL.txt),
+  self-hosted rather than linked so the page has no third-party dependency.
+  Display type only: a pixel face at 13px body size is a legibility problem,
+  not a style. Headings, clocks and numbers carry the lo-fi register; anything
+  you actually have to read stays in the system sans.
+*/
+@font-face {
+  font-family: "pixelify sans";
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url("/comp4020-crit5-attwelveDev/fonts/pixelify-sans-latin.woff2") format("woff2");
+}
+
+/*
   One set of tokens for the whole game. The lo-fi look is a choice, not a
   budget: consistency in stroke weight, type scale and easing is what keeps
   flat polygons reading as deliberate rather than unfinished.
@@ -7,26 +22,37 @@
 :root {
   color-scheme: light dark;
 
-  --bg: #f3efe6;
-  --surface: #fffcf5;
-  --sunken: #ebe5d7;
-  --ink: #211e1a;
-  --muted: #6d6459;
-  --line: #ddd5c4;
-  --accent: #17594a;
+  --display: "pixelify sans", ui-monospace, monospace;
+  --bg: #efeadf;
+  --surface: #fffdf7;
+  --sunken: #e3ddcd;
+  --ink: #1e1b17;
+  --muted: #6b6154;
+  --line: #d5ccb8;
+  --accent: #16695a;
   --on-accent: #fdfbf5;
   --ok: #2f7d63;
-  --warn: #b8752a;
-  --bad: #a83c2e;
+  --warn: #c07a1e;
+  --bad: #b23a2a;
   --tint-ok: #dcefe6;
-  --tint-warn: #f7e7cf;
+  --tint-warn: #f6e6c9;
   --tint-bad: #f6ded8;
-  --floor: #e7e0d0;
-  --place-face: #d3c9b1;
-  --place-edge: #b6ab90;
-  --face-top: #d8cfb8;
-  --face-left: #bfb49a;
-  --face-right: #a2977d;
+
+  /* The art. `--outline` is the single stroke colour for every drawn edge and
+     `--shade` is what every face mixes toward, so the light never drifts. */
+  --outline: #2b2721;
+  --shade: #2b2721;
+  --floor: #ded7c4;
+  --room: #eae3d1;
+  --room-warn: #f3e2c6;
+  --plan-fill: #cabfa4;
+  --prop-base: #d9cfb4;
+  --prop-dark: #4a4338;
+  --prop-light: #f2ece0;
+  --metal: #8f959c;
+  --wood: #b98b52;
+  --fresh: #7fa64a;
+  --actor: #16695a;
   --t-1: 0.75rem;
   --t-2: 0.8125rem;
   --t-3: 0.9375rem;
@@ -53,26 +79,33 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #17161a;
-    --surface: #212026;
-    --sunken: #1b1a1f;
-    --ink: #f1ede5;
-    --muted: #a49c90;
-    --line: #35323c;
+    --bg: #16151a;
+    --surface: #201f26;
+    --sunken: #1a1920;
+    --ink: #f0ece3;
+    --muted: #a0988c;
+    --line: #33313c;
     --accent: #4cbb9d;
-    --on-accent: #10231e;
+    --on-accent: #0d2019;
     --ok: #4cbb9d;
     --warn: #dd9c4e;
     --bad: #e0705d;
     --tint-ok: #1e3a33;
     --tint-warn: #3b2f1c;
     --tint-bad: #3d2622;
-    --floor: #26242c;
-    --place-face: #383544;
-    --place-edge: #4a465a;
-    --face-top: #3d3a4a;
-    --face-left: #322f3c;
-    --face-right: #28252f;
+    --outline: #100f14;
+    --shade: #000;
+    --floor: #23222a;
+    --room: #2b2934;
+    --room-warn: #3a3226;
+    --plan-fill: #3f3d4c;
+    --prop-base: #4b4960;
+    --prop-dark: #23222b;
+    --prop-light: #7d7a92;
+    --metal: #8a8fa0;
+    --wood: #8a6134;
+    --fresh: #6d9445;
+    --actor: #4cbb9d;
     --lift: 0 1px 0 rgb(0 0 0 / 30%), 0 6px 18px rgb(0 0 0 / 35%);
     --lift-high: 0 2px 0 rgb(0 0 0 / 35%), 0 18px 38px rgb(0 0 0 / 50%);
   }
@@ -95,10 +128,11 @@ body {
 
 h1 {
   margin: 0;
-  font-size: var(--t-6);
-  font-weight: 650;
-  line-height: 1.1;
-  letter-spacing: -0.02em;
+  font-family: var(--display);
+  font-size: calc(var(--t-6) * 1.1);
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: 0;
 }
 
 p {
@@ -178,6 +212,7 @@ a:focus-visible {
 }
 
 .brand {
+  font-family: var(--display);
   font-size: var(--t-2);
   font-weight: 650;
   letter-spacing: 0.09em;
@@ -250,40 +285,72 @@ a:focus-visible {
   transform: none;
 }
 
-/* ── Planning board (top-down) ──────────────────────────────────────────── */
+/* ── Planning board (floor plan) ────────────────────────────────────────── */
 
 .board-floor rect {
   fill: var(--floor);
 }
 
-.place-shadow {
-  fill: var(--place-edge);
-}
-
-.place-face {
-  fill: var(--place-face);
-  stroke: var(--place-edge);
+.room-floor {
+  fill: var(--room);
+  stroke: var(--outline);
   stroke-width: 0.5;
 }
 
+.room.is-affected .room-floor {
+  fill: var(--room-warn);
+}
+
+.plan-solid {
+  fill: var(--plan-fill);
+  stroke: var(--outline);
+  stroke-width: 0.45;
+  stroke-linejoin: round;
+}
+
+.plan-hollow {
+  fill: none;
+  stroke: var(--outline);
+  stroke-width: 0.45;
+  stroke-linejoin: round;
+}
+
+.plan-line {
+  fill: none;
+  stroke: var(--outline);
+  stroke-width: 0.45;
+  stroke-linecap: round;
+}
+
+.plan-line-fill {
+  fill: var(--outline);
+}
+
 .place-name {
-  font-size: 3px;
+  paint-order: stroke fill;
+  stroke: var(--floor);
+  stroke-width: 1.1;
+  stroke-linejoin: round;
+  font-size: 3.2px;
   font-weight: 600;
   fill: var(--muted);
   text-anchor: middle;
+  letter-spacing: 0.04em;
 }
 
 .board-route {
   fill: none;
   stroke: var(--accent);
-  stroke-width: 1.1;
+  stroke-width: 1.2;
   stroke-linecap: round;
   stroke-linejoin: round;
-  opacity: 0.75;
+  opacity: 0.85;
 }
 
 .board-start polygon {
   fill: var(--muted);
+  stroke: var(--outline);
+  stroke-width: 0.4;
 }
 
 .board-start text {
@@ -295,12 +362,12 @@ a:focus-visible {
 
 .pin-disc {
   fill: var(--accent);
-  stroke: var(--surface);
-  stroke-width: 0.9;
+  stroke: var(--outline);
+  stroke-width: 0.6;
 }
 
 .pin-number {
-  font-size: 3.6px;
+  font-size: 3.9px;
   font-weight: 700;
   fill: var(--on-accent);
   text-anchor: middle;
@@ -308,8 +375,8 @@ a:focus-visible {
 
 .pin-flag {
   fill: var(--warn);
-  stroke: var(--surface);
-  stroke-width: 0.6;
+  stroke: var(--outline);
+  stroke-width: 0.5;
 }
 
 .pin[data-severity="heavy"] .pin-flag,
@@ -337,6 +404,34 @@ a:focus-visible {
 
 /* ── Playback scene (isometric) ─────────────────────────────────────────── */
 
+/*
+  One light direction for the whole scene. A prop sets `--tone` and the three
+  faces derive from it, so nothing is ever shaded by hand and no two props can
+  disagree about where the light is coming from.
+*/
+
+.stage-places {
+  --tone: var(--prop-base);
+}
+
+.stage-places polygon {
+  stroke: var(--outline);
+  stroke-width: 0.3;
+  stroke-linejoin: round;
+}
+
+.face-top {
+  fill: var(--tone);
+}
+
+.face-left {
+  fill: color-mix(in srgb, var(--tone) 78%, var(--shade));
+}
+
+.face-right {
+  fill: color-mix(in srgb, var(--tone) 56%, var(--shade));
+}
+
 .stage-floor {
   fill: var(--floor);
 }
@@ -350,51 +445,134 @@ a:focus-visible {
   opacity: 0.5;
 }
 
-.face-top {
-  fill: var(--face-top);
+.stage-places .room-pad {
+  fill: var(--room);
+  stroke: none;
 }
 
-.face-left {
-  fill: var(--face-left);
+.top-light {
+  fill: color-mix(in srgb, var(--tone) 84%, white);
 }
 
-.face-right {
-  fill: var(--face-right);
+/* Prop tones — the only thing a fixture chooses. */
+
+.leg,
+.stack,
+.door,
+.screen {
+  --tone: var(--prop-dark);
 }
 
-.plinth polygon {
-  transition: fill var(--dur-2) var(--ease);
+.bar,
+.tap {
+  --tone: var(--metal);
+}
+
+.timber,
+.crate {
+  --tone: var(--wood);
+}
+
+.awning,
+.brush {
+  --tone: var(--accent);
+}
+
+.pillow,
+.tray {
+  --tone: var(--prop-light);
+}
+
+.glass {
+  --tone: var(--prop-light);
+
+  opacity: 0.45;
+}
+
+/* Flat details drawn onto a surface. */
+
+.hob,
+.porthole {
+  fill: var(--prop-dark);
+  stroke: var(--outline);
+  stroke-width: 0.3;
+}
+
+.basin,
+.belt {
+  fill: color-mix(in srgb, var(--prop-base) 62%, var(--shade));
+  stroke: var(--outline);
+  stroke-width: 0.3;
+}
+
+.plate {
+  fill: var(--prop-dark);
+  stroke: var(--outline);
+  stroke-width: 0.3;
+}
+
+.mat-pad {
+  fill: var(--accent);
+  stroke: var(--outline);
+  stroke-width: 0.3;
+  opacity: 0.8;
+}
+
+.produce-heap,
+.foliage {
+  fill: var(--fresh);
+  stroke: var(--outline);
+  stroke-width: 0.3;
+}
+
+.seam,
+.handle,
+.window,
+.sign {
+  stroke: var(--outline);
+  stroke-width: 0.4;
+  stroke-linecap: round;
+}
+
+.handle,
+.sign {
+  stroke: var(--metal);
+  stroke-width: 0.7;
 }
 
 .plinth-name {
+  paint-order: stroke fill;
+  stroke: var(--floor);
+  stroke-width: 1.1;
+  stroke-linejoin: round;
   font-size: 3px;
   font-weight: 600;
   fill: var(--muted);
   text-anchor: middle;
 }
 
-.plinth.is-active .face-top {
-  fill: var(--accent);
+.room3d.is-active {
+  --tone: var(--accent);
 }
 
-.plinth.is-active .face-left {
-  fill: color-mix(in srgb, var(--accent) 72%, black);
-}
-
-.plinth.is-active .face-right {
-  fill: color-mix(in srgb, var(--accent) 55%, black);
+.room3d polygon {
+  transition: fill var(--dur-2) var(--ease);
 }
 
 .actor-shadow {
-  fill: rgb(0 0 0 / 18%);
+  fill: rgb(0 0 0 / 22%);
 }
 
 .actor-body {
-  fill: var(--accent);
+  fill: var(--actor);
+  stroke: var(--outline);
+  stroke-width: 0.4;
 }
 
 .actor-head {
-  fill: color-mix(in srgb, var(--accent) 70%, white);
+  fill: color-mix(in srgb, var(--actor) 72%, white);
+  stroke: var(--outline);
+  stroke-width: 0.4;
 }
 
 .actor-ring {
@@ -651,6 +829,7 @@ a:focus-visible {
 /* ── Commit, HUD, result ────────────────────────────────────────────────── */
 
 .commit {
+  font-family: var(--display);
   padding: var(--s-3) var(--s-4);
   font-size: var(--t-4);
   font-weight: 650;
@@ -743,6 +922,7 @@ a:focus-visible {
 }
 
 .verdict {
+  font-family: var(--display);
   font-size: var(--t-6);
   font-weight: 650;
   line-height: 1.1;

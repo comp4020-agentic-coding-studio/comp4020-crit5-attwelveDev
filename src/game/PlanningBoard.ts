@@ -1,54 +1,32 @@
 import { constraintReading } from "../lib/constraintState";
-import type { Point, Shift, Task } from "../lib/types";
+import type { Place, Point, Shift } from "../lib/types";
+import { planSymbol } from "./fixtures";
 
 /**
- * The planning view: a top-down directory board. Diegetically the map the
- * character would plausibly be holding, not omniscience — which is why it
- * shows where things are and what the queues are doing, but never how long
- * the plan you've built will actually take.
+ * The planning view: a floor plan. Diegetically the map the character would
+ * plausibly be holding — a store directory, a gym's induction sheet, the fire
+ * plan on the back of an office door — which is why it shows where everything
+ * is and what the queues are doing, but never how long the plan you've built
+ * will actually take.
+ *
+ * Rooms are drawn as footprints with architect's symbols in them, so a kitchen
+ * reads as a kitchen before you've read a single label.
  */
 
-const PLACE_HEIGHT = 14;
-const PIN_SPREAD = 11;
+const PIN_SPREAD = 9.5;
 
-type Layout = {
-  readonly places: readonly {
-    name: string;
-    centre: Point;
-    width: number;
-    affected: boolean;
-  }[];
-  readonly pins: ReadonlyMap<string, Point>;
-};
-
-function layout(shift: Shift): Layout {
-  const groups = new Map<string, Task[]>();
-  for (const task of shift.tasks) {
-    const group = groups.get(task.place) ?? [];
-    group.push(task);
-    groups.set(task.place, group);
-  }
-
+function pinPoints(shift: Shift): Map<string, Point> {
   const pins = new Map<string, Point>();
-  const places = [...groups].map(([name, tasks]) => {
-    const first = tasks[0] as Task;
-    tasks.forEach((task, index) => {
+  for (const place of shift.places) {
+    const here = shift.tasks.filter((task) => task.place === place.name);
+    here.forEach((task, index) => {
       pins.set(task.id, {
-        x: first.location.x + (index - (tasks.length - 1) / 2) * PIN_SPREAD,
-        y: first.location.y,
+        x: place.at.x + (index - (here.length - 1) / 2) * PIN_SPREAD,
+        y: place.at.y + place.h / 2 - 4.2,
       });
     });
-    return {
-      name,
-      centre: first.location,
-      width: Math.max(24, tasks.length * PIN_SPREAD + 8),
-      affected: tasks.some((task) =>
-        shift.constraint.affectedTaskIds.includes(task.id),
-      ),
-    };
-  });
-
-  return { places, pins };
+  }
+  return pins;
 }
 
 function escape(text: string): string {
@@ -63,6 +41,15 @@ function marker(shape: string, x: number, y: number): string {
   return `<polygon points="${x},${y - 3} ${x + 3},${y} ${x},${y + 3} ${x - 3},${y}" />`;
 }
 
+function roomMarkup(place: Place, affected: boolean): string {
+  const { x, y } = place.at;
+  return `<g class="room${affected ? " is-affected" : ""}">
+  <rect class="room-floor" x="${(x - place.w / 2).toFixed(2)}" y="${(y - place.h / 2).toFixed(2)}" width="${place.w}" height="${place.h}" rx="1.6" />
+  <g class="room-fixture">${planSymbol(place)}</g>
+  <text class="place-name" x="${x}" y="${(y - place.h / 2 - 2.1).toFixed(2)}">${escape(place.name)}</text>
+</g>`;
+}
+
 export type BoardHandle = {
   render(shift: Shift, order: readonly string[]): void;
 };
@@ -72,7 +59,7 @@ export function createPlanningBoard(svg: SVGSVGElement): BoardHandle {
 
   return {
     render(shift, order) {
-      const { places, pins } = layout(shift);
+      const pins = pinPoints(shift);
       const shape =
         shift.constraint.kind === "hours"
           ? "cutoff"
@@ -80,31 +67,33 @@ export function createPlanningBoard(svg: SVGSVGElement): BoardHandle {
             ? "up"
             : "down";
 
-      // Several scenarios start somewhere that is also a task's location
-      // (reception, the front desk, the hallway). Drawing the start marker at
-      // the raw point buries it under a pin and prints the name twice, so it
-      // moves to the edge of that place and drops its own label.
-      const shared = places.find(
-        (place) => Math.hypot(place.centre.x - shift.start.x, place.centre.y - shift.start.y) < 8,
+      // Several scenarios start somewhere that is also a task's location.
+      // Drawing the start marker at the raw point buries it under a pin and
+      // prints the name twice, so it steps to the edge of that room instead.
+      const shared = shift.places.find(
+        (place) =>
+          Math.abs(place.at.x - shift.start.x) < place.w / 2 + 3 &&
+          Math.abs(place.at.y - shift.start.y) < place.h / 2 + 3,
       );
       const anchor = shared
-        ? { x: shared.centre.x - shared.width / 2 - 5.5, y: shared.centre.y }
+        ? { x: shared.at.x - shared.w / 2 - 5.5, y: shared.at.y }
         : shift.start;
 
       const route = [anchor, ...order.map((id) => pins.get(id) ?? anchor)]
-        .map((p) => `${p.x},${p.y}`)
+        .map((p) => `${p.x.toFixed(2)},${p.y.toFixed(2)}`)
         .join(" ");
 
-      const placeMarkup = places
-        .map((place) => {
-          const x = place.centre.x - place.width / 2;
-          const y = place.centre.y - PLACE_HEIGHT / 2;
-          return `<g class="place${place.affected ? " is-affected" : ""}">
-  <rect class="place-shadow" x="${x + 1.4}" y="${y + 1.4}" width="${place.width}" height="${PLACE_HEIGHT}" rx="2.5" />
-  <rect class="place-face" x="${x}" y="${y}" width="${place.width}" height="${PLACE_HEIGHT}" rx="2.5" />
-  <text class="place-name" x="${place.centre.x}" y="${y + PLACE_HEIGHT + 5.2}">${escape(place.name)}</text>
-</g>`;
-        })
+      const rooms = shift.places
+        .map((place) =>
+          roomMarkup(
+            place,
+            shift.tasks.some(
+              (task) =>
+                task.place === place.name &&
+                shift.constraint.affectedTaskIds.includes(task.id),
+            ),
+          ),
+        )
         .join("");
 
       const pinMarkup = order
@@ -114,17 +103,17 @@ export function createPlanningBoard(svg: SVGSVGElement): BoardHandle {
           const reading = constraintReading(shift.constraint, id, 0);
           const changed = previous[index] !== id;
           return `<g class="pin${changed ? " pin-changed" : ""}" data-severity="${reading.severity}">
-  <circle class="pin-disc" cx="${point.x}" cy="${point.y}" r="4" />
-  <text class="pin-number" x="${point.x}" y="${point.y + 1.4}">${index + 1}</text>
+  <circle class="pin-disc" cx="${point.x.toFixed(2)}" cy="${point.y.toFixed(2)}" r="4" />
+  <text class="pin-number" x="${point.x.toFixed(2)}" y="${(point.y + 1.4).toFixed(2)}">${index + 1}</text>
   ${reading.severity === "none" ? "" : `<g class="pin-flag">${marker(shape, point.x + 5, point.y - 4)}</g>`}
 </g>`;
         })
         .join("");
 
       svg.innerHTML = `<g class="board-floor">
-  <rect x="-4" y="-6" width="108" height="112" rx="6" />
+  <rect x="-4" y="-6" width="108" height="112" rx="4" />
 </g>
-<g class="board-places">${placeMarkup}</g>
+<g class="board-rooms">${rooms}</g>
 <polyline class="board-route" points="${route}" />
 <g class="board-start">
   <polygon points="${anchor.x},${anchor.y - 4.4} ${anchor.x + 4},${anchor.y + 2.6} ${anchor.x - 4},${anchor.y + 2.6}" />

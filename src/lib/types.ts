@@ -1,5 +1,48 @@
 export type Point = { readonly x: number; readonly y: number };
 
+/**
+ * The thing that is physically there. Shared vocabulary across scenarios — a
+ * deli counter and a bank counter are the same prop — but chosen per place, so
+ * a gym is racks and treadmills and a kitchen is a stove and a sink.
+ */
+export type Fixture =
+  | "counter"
+  | "shelving"
+  | "fridge"
+  | "stove"
+  | "oven"
+  | "sink"
+  | "table"
+  | "desk"
+  | "bed"
+  | "sofa"
+  | "shower"
+  | "washer"
+  | "wardrobe"
+  | "printer"
+  | "treadmill"
+  | "rack"
+  | "cables"
+  | "mat"
+  | "fountain"
+  | "sauna"
+  | "lockers"
+  | "produce"
+  | "stall"
+  | "storefront"
+  | "carwash"
+  | "planter";
+
+/** A named area of the map: a footprint, and what's in it. */
+export type Place = {
+  readonly name: string;
+  readonly at: Point;
+  /** Footprint in board units (the board is 100 x 100). */
+  readonly w: number;
+  readonly h: number;
+  readonly fixture: Fixture;
+};
+
 /** A constraint kind a task is allowed to interact with. */
 export type ConstraintKind = "queue" | "hours";
 
@@ -58,6 +101,8 @@ export type ShiftPlan = {
   /** Scales travel time, so a flat feels tighter than a town. */
   readonly travelScale: number;
   readonly tasks: readonly Task[];
+  /** Only the places this shift actually visits. */
+  readonly places: readonly Place[];
   readonly constraint: Constraint;
 };
 

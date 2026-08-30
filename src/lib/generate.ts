@@ -178,7 +178,9 @@ function build(seed: number, weekend: boolean, day: string | null): Shift {
   const scenario = pick(rng, scenarioPool(weekend));
   const tasks = pickTasks(rng, scenario);
 
+  const visited = new Set(tasks.map((task) => task.place));
   const bare: ShiftPlan = {
+    places: scenario.places.filter((place) => visited.has(place.name)),
     scenarioId: scenario.id,
     title: scenario.title,
     place: scenario.place,

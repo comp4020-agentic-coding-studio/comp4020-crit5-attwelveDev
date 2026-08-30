@@ -68,6 +68,25 @@ keys move a focused card as a keyboard equivalent.
 1920×1080 and touch drag at 390×844 — both reorder the list and renumber the
 board. *(Done 2026-08-30: verified in Chromium at both sizes.)*
 
+### Each place looks like itself — `src/game/fixtures.ts`, `src/game/iso.ts`
+
+Every place names a fixture from a shared vocabulary — counter, shelving,
+fridge, stove, treadmill, rack, lockers, storefront and so on — and each is
+drawn twice: as a floor-plan symbol on the planning board and as an isometric
+prop in the playback scene. Layouts are believable plans (perimeter
+departments in the supermarket, counters along the kitchen walls, two rows of
+shopfronts in town) rather than scattered points.
+
+Props are authored vector, not sprite art. That is a deliberate call and the
+alternative was researched first: no CC0 2D isometric interior art exists for
+gyms, supermarkets or offices, and the CC0 isometric tilesets that do exist
+are 2:1 dimetric, which cannot be mixed with true 30° geometry. Vector also
+follows the light/dark palette, which baked-in sprite colours cannot.
+
+**Done when:** manual browser pass — a stranger can tell a gym from a kitchen
+from a supermarket with the labels covered, in both themes.
+*(Done 2026-08-30: checked in light and dark at 1440×900.)*
+
 ### The two cameras — `src/game/PlanningBoard.ts`, `src/game/Playback.ts`
 
 Planning is a top-down directory board: places, a numbered route line that
