@@ -7,34 +7,76 @@ import "../styles/global.css";
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>COMP4020 prototype</title>
+    <title>Today's Shift</title>
     <meta
       name="description"
-      content="Replace this with one sentence saying what this page is. A search result and a link preview both show it."
+      content="A daily ordering puzzle: plan one day's tasks in the right order and beat the clock. Same shift for everyone, every day."
     />
 
-    <!--
-      The link-preview card: public/card.png, 1200x630 --- replace it. The URL
-      resolves against this page, like any link. No og:title/og:description:
-      scrapers fall back to the <title> and description above.
-    -->
     <meta property="og:type" content="website" />
     <meta property="og:image" content="./card.png" />
     <meta name="twitter:card" content="summary_large_image" />
   </head>
   <body>
-    <header>
-      <nav aria-label="Primary">
-        <a href="./">Home</a>
-      </nav>
-    </header>
-    <main>
-      <h1>COMP4020 prototype</h1>
-      <p>
-        Replace this with your prototype. This week's brief is on the course
-        website; <code>spec/README.md</code> explains how the checks in this
-        repo relate to it.
-      </p>
-    </main>
+    <div class="app" id="app" data-phase="planning">
+      <header class="topbar">
+        <p class="brand">Today&rsquo;s Shift</p>
+        <nav aria-label="Primary">
+          <a href="./">Today</a>
+          <a href="./?shift=random">Random</a>
+        </nav>
+        <p class="streak" id="streak"></p>
+      </header>
+
+      <main class="stage">
+        <section class="viewport">
+          <svg
+            class="board"
+            id="board"
+            viewBox="-6 -8 112 118"
+            aria-hidden="true"></svg>
+          <svg
+            class="scene"
+            id="scene"
+            viewBox="-71 -14 142 102"
+            aria-hidden="true"></svg>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <p class="eyebrow" id="eyebrow"></p>
+            <h1 id="title">Today&rsquo;s Shift</h1>
+            <p class="place" id="place"></p>
+            <div class="clocks">
+              <p><span>Start</span><strong id="start-clock">--:--</strong></p>
+              <p>
+                <span>Be done by</span><strong id="deadline-clock">--:--</strong>
+              </p>
+            </div>
+            <p class="constraint" id="constraint"></p>
+          </div>
+
+          <div class="hud" id="hud">
+            <p class="hud-clock">
+              <strong id="hud-clock">--:--</strong><span id="hud-deadline"></span>
+            </p>
+            <div class="bar"><span class="bar-fill" id="hud-bar"></span></div>
+            <p class="hud-action" id="hud-action"></p>
+          </div>
+
+          <div class="result" id="result"></div>
+
+          <ol class="tasks" id="tasks"></ol>
+          <button class="commit" id="commit" type="button">
+            Start the shift
+          </button>
+        </section>
+      </main>
+    </div>
+
+    <script>
+      import { mountGame } from "../game/phases";
+      mountGame();
+    </script>
   </body>
 </html>

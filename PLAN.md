@@ -2,12 +2,108 @@
 
 ## Premise
 
-<!-- One paragraph: the mechanic, and the ending states (win / loss / finish)
-     it produces. -->
+**Today's Shift** is a one-a-day ordering puzzle. You get a day's worth of
+tasks — a grocery run, a work day, cooking dinner — and one move: drag the
+list into the order you want, then commit. The plan plays itself out in an
+isometric replay you don't control, against a deadline computed from that
+day's own best possible route. Finish every task before the clock runs out and
+you made it; run past the deadline, or arrive somewhere after it's closed, and
+the shift simply ends. There is no partial credit and no way to intervene once
+you've committed — a wrong order is just wrong.
 
 ## Features
 
-<!-- One entry per feature: what it does, why, and the check that proves it's
-     done — a spec/*.test.ts assertion, a co-located unit test, or (for what a
-     test can't reach, like feel or layout) an explicit manual browser pass at
-     both marking viewports. Update as you build, not just before. -->
+### The deterministic core — `src/lib/prng.ts`, `src/lib/seed.ts`
+
+A mulberry32 PRNG seeded from the calendar date. Everyone playing on the same
+local date gets the same shift, forever, with no backend. Weeks bucket on a
+Monday so a whole week varies together without any day needing yesterday's
+state — skipping a day never breaks the sequence.
+
+**Done when:** `src/lib/seed.test.ts` and `prng.test.ts` pass — same date gives
+the same seed regardless of time of day, adjacent days differ, and a week's
+seven shift seeds are all distinct.
+
+### Six scenarios of content — `src/lib/data/scenarios.ts`
+
+Getting Ready, A Work Day, A Gym Session, A Grocery Run, Cooking Dinner,
+Weekend Errands. Each is a pool of ten tasks with locations, base times, and
+tags saying which constraints can touch them, plus a weekday/weekend flag.
+Adding a seventh is an entry in this file and nothing else.
+
+**Done when:** `src/lib/generate.test.ts` passes — every scenario has enough
+tasks to sample from and at least three each of both constraint kinds; a
+month of generated days reaches four or more distinct scenarios and never
+draws a weekday scenario on a weekend.
+
+### The route solver and the computed deadline — `src/lib/route.ts`
+
+Brute-force every ordering (≤6 tasks, so ≤720), take the best, multiply by a
+fixed ×1.2 margin. The deadline is derived from the day rather than authored,
+so it's tight but always achievable. Generation then keeps nudging the
+constraint until the day is *also* genuinely losable.
+
+**Done when:** `src/lib/route.test.ts` passes — this is the spec's one game
+rule under a focused automated test. Across 120 generated shifts, the best
+possible order always meets the deadline and at least one order always misses
+it, and the median day has ≥20% of its orderings failing.
+
+### Constraints as pure functions — `src/lib/constraintState.ts`
+
+One constraint per day: a queue that builds (go early) or clears (go late), or
+a cutoff after which affected tasks are unreachable. Wait is a pure function of
+`(constraint, task, simulated minute)` — no wall clock anywhere — so the
+solver and the replay are guaranteed to agree.
+
+**Done when:** `src/lib/constraintState.test.ts` passes, and `route.test.ts`
+asserts every replayed step's wait equals `constraintWait` at that arrival.
+
+### Drag-to-reorder — `src/game/TaskList.ts`
+
+Pointer Events, not HTML5 drag-and-drop, which has no usable touch story.
+Cards lift, siblings slide out of the way, the dropped card settles. Arrow
+keys move a focused card as a keyboard equivalent.
+
+**Done when:** manual browser pass at both marking viewports — mouse drag at
+1920×1080 and touch drag at 390×844 — both reorder the list and renumber the
+board. *(Done 2026-08-30: verified in Chromium at both sizes.)*
+
+### The two cameras — `src/game/PlanningBoard.ts`, `src/game/Playback.ts`
+
+Planning is a top-down directory board: places, a numbered route line that
+redraws itself on every reorder, and a shape-and-colour badge on any task the
+day's constraint touches. Playback is a non-interactive isometric replay
+driven by the simulated clock, a few seconds long whatever the shift's
+simulated length.
+
+**Done when:** manual browser pass — a full shift plays to a win and to a
+loss, the active place highlights as the character reaches it, and the replay
+stops dead at the deadline or at a closed task. *(Done 2026-08-30.)*
+
+### First attempt is the score — `src/lib/stats.ts`
+
+Today's Shift records only the first attempt each day, at commit rather than
+at the end of playback, so closing the tab mid-run isn't a way to dodge a
+loss. Retries are encouraged and visibly labelled "practice — not counted".
+Random Shift never touches the record at all. All storage access is wrapped —
+a private window still plays, it just isn't tracked.
+
+**Done when:** `src/lib/stats.ts` guards every read and write, and a manual
+pass confirms a second run of the same day shows "practice — not counted"
+while the first shows "recorded". *(Done 2026-08-30.)*
+
+### No instructions anywhere
+
+The game has to teach itself: the numbered cards, the route line that follows
+your drags, the two clocks, and one plain sentence about the day's constraint.
+
+**Done when:** `spec/game.test.ts` passes against the built site — no
+how-to-play, instructions or tutorial text, and no dialog standing in for one.
+
+## Still to do
+
+- Playtest cold with people who haven't seen it, at both marking viewports,
+  and make at least one change driven by what's observed rather than by
+  re-reading the code.
+- `PROCESS.md` and `reflections/crit-5.md` before `pnpm check:evidence` can
+  pass.
