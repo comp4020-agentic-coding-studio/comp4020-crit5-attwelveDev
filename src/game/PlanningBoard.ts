@@ -80,10 +80,18 @@ export function createPlanningBoard(svg: SVGSVGElement): BoardHandle {
             ? "up"
             : "down";
 
-      const route = [
-        shift.start,
-        ...order.map((id) => pins.get(id) ?? shift.start),
-      ]
+      // Several scenarios start somewhere that is also a task's location
+      // (reception, the front desk, the hallway). Drawing the start marker at
+      // the raw point buries it under a pin and prints the name twice, so it
+      // moves to the edge of that place and drops its own label.
+      const shared = places.find(
+        (place) => Math.hypot(place.centre.x - shift.start.x, place.centre.y - shift.start.y) < 8,
+      );
+      const anchor = shared
+        ? { x: shared.centre.x - shared.width / 2 - 5.5, y: shared.centre.y }
+        : shift.start;
+
+      const route = [anchor, ...order.map((id) => pins.get(id) ?? anchor)]
         .map((p) => `${p.x},${p.y}`)
         .join(" ");
 
@@ -119,8 +127,8 @@ export function createPlanningBoard(svg: SVGSVGElement): BoardHandle {
 <g class="board-places">${placeMarkup}</g>
 <polyline class="board-route" points="${route}" />
 <g class="board-start">
-  <polygon points="${shift.start.x},${shift.start.y - 4.4} ${shift.start.x + 4},${shift.start.y + 2.6} ${shift.start.x - 4},${shift.start.y + 2.6}" />
-  <text x="${shift.start.x}" y="${shift.start.y + 8.4}">${escape(shift.startLabel)}</text>
+  <polygon points="${anchor.x},${anchor.y - 4.4} ${anchor.x + 4},${anchor.y + 2.6} ${anchor.x - 4},${anchor.y + 2.6}" />
+  ${shared ? "" : `<text x="${anchor.x}" y="${anchor.y + 8.4}">${escape(shift.startLabel)}</text>`}
 </g>
 <g class="board-pins">${pinMarkup}</g>`;
 
