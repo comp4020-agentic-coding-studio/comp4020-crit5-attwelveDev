@@ -1,4 +1,4 @@
-import { constraintWait } from "./constraintState";
+import { constraintWait, precedenceViolated, zoneOf } from "./constraintState";
 import type { Point, ShiftPlan, Task } from "./types";
 
 /** The one tuning number in the whole game. */
@@ -30,8 +30,19 @@ export type Run = {
   readonly failedAt: number;
 };
 
-/** Walk one committed order and report exactly what happens, minute by minute. */
+/**
+ * Walk one committed order and report exactly what happens, minute by
+ * minute. Precedence is a property of the whole order, not of any single
+ * step, so it's checked once, up front, before the order is even walked —
+ * the same shape of early return as an unreachable task, just triggered
+ * before travel starts rather than partway through it.
+ */
 export function simulateOrder(shift: ShiftPlan, order: readonly string[]): Run {
+  if (precedenceViolated(shift.precedence, order)) {
+    const failedAt = order.indexOf(shift.precedence!.afterId);
+    return { order, steps: [], total: Infinity, feasible: false, failedAt };
+  }
+
   const byId = new Map(shift.tasks.map((task) => [task.id, task]));
   const steps: Step[] = [];
   let clock = 0;
@@ -41,8 +52,16 @@ export function simulateOrder(shift: ShiftPlan, order: readonly string[]): Run {
     const task = byId.get(id);
     if (!task) continue;
     const leave = clock;
-    const arrive = clock + travelTime(at, task.location, shift.travelScale);
-    const wait = constraintWait(shift.constraint, id, arrive);
+    // Crossing the map's spatial seam costs a surcharge on top of geometric
+    // travel time — not folded into `wait`, since it isn't a hazard: it's
+    // what the map itself costs you for zig-zagging instead of clustering.
+    const crossedZone =
+      zoneOf(at.x, shift.zoneSplitX) !== zoneOf(task.location.x, shift.zoneSplitX);
+    const arrive =
+      clock +
+      travelTime(at, task.location, shift.travelScale) +
+      (crossedZone ? shift.zonePenaltyMinutes : 0);
+    const wait = constraintWait(shift.hazards, id, arrive);
     if (!Number.isFinite(wait)) {
       steps.push({ task, leave, arrive, wait, done: Infinity });
       return {

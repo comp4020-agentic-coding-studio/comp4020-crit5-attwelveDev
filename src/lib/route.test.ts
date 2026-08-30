@@ -11,7 +11,7 @@ import {
   simulateOrder,
   travelTime,
 } from "./route";
-import type { Shift, ShiftPlan } from "./types";
+import type { Shift, ShiftPlan, Task } from "./types";
 
 const days = Array.from({ length: 60 }, (_, i) => new Date(2026, 8, 1 + i));
 const randoms = Array.from({ length: 60 }, (_, i) => generateRandom(i * 7919 + 3));
@@ -100,7 +100,7 @@ describe("simulateOrder", () => {
     const run = simulateOrder(shift, shift.tasks.map((t) => t.id));
     for (const step of run.steps) {
       expect(step.wait).toBe(
-        constraintWait(shift.constraint, step.task.id, step.arrive),
+        constraintWait(shift.hazards, step.task.id, step.arrive),
       );
     }
   });
@@ -108,19 +108,58 @@ describe("simulateOrder", () => {
   it("stops dead at an unreachable task rather than fudging it", () => {
     const closed: ShiftPlan = {
       ...shift,
-      constraint: {
-        kind: "hours",
-        label: "Test",
-        verb: "closes at",
-        closedLabel: "Closed",
-        affectedTaskIds: [shift.tasks[shift.tasks.length - 1]!.id],
-        closeAt: 0,
-      },
+      hazards: [
+        {
+          kind: "hours",
+          label: "Test",
+          verb: "closes at",
+          closedLabel: "Closed",
+          affectedTaskIds: [shift.tasks[shift.tasks.length - 1]!.id],
+          closeAt: 0,
+        },
+      ],
     };
     const run = simulateOrder(closed, closed.tasks.map((t) => t.id));
     expect(run.feasible).toBe(false);
     expect(run.total).toBe(Infinity);
     expect(run.failedAt).toBe(closed.tasks.length - 1);
+  });
+
+  it("fails outright, before any travel, when precedence is violated", () => {
+    const ids = shift.tasks.map((t) => t.id);
+    const violating: ShiftPlan = {
+      ...shift,
+      precedence: {
+        kind: "precedence",
+        label: "Test",
+        beforeId: ids[0]!,
+        afterId: ids[1]!,
+        blockedLabel: "Out of order",
+      },
+    };
+    const run = simulateOrder(violating, [ids[1]!, ids[0]!, ...ids.slice(2)]);
+    expect(run.feasible).toBe(false);
+    expect(run.total).toBe(Infinity);
+    expect(run.failedAt).toBe(0);
+    expect(run.steps).toHaveLength(0);
+  });
+
+  it("charges the zone penalty only when a step crosses the seam", () => {
+    const w1: Task = { id: "w1", label: "w1", place: "x", location: { x: 10, y: 50 }, baseTime: 5, tags: [] };
+    const w2: Task = { id: "w2", label: "w2", place: "x", location: { x: 20, y: 50 }, baseTime: 5, tags: [] };
+    const e1: Task = { id: "e1", label: "e1", place: "x", location: { x: 90, y: 50 }, baseTime: 5, tags: [] };
+    const same: ShiftPlan = {
+      ...shift,
+      start: w1.location,
+      tasks: [w1, w2, e1],
+      zoneSplitX: 50,
+      zonePenaltyMinutes: 9,
+    };
+    const noCross = simulateOrder(same, ["w1", "w2"]);
+    const oneCross = simulateOrder(same, ["w1", "e1"]);
+    const withinZone = travelTime(w1.location, w2.location, same.travelScale);
+    const acrossZone = travelTime(w1.location, e1.location, same.travelScale);
+    expect(oneCross.total - noCross.total).toBe(acrossZone - withinZone + 9);
   });
 });
 

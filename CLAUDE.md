@@ -207,6 +207,53 @@ alone, so they're written down rather than left implicit:
   but always achievable by construction — this is also the game's one
   formally tested rule (`src/lib/route.test.ts`: the optimal ordering always
   meets the deadline it produced).
+- **One constraint was never enough.** A single hazard can always be
+  neutralized by pushing it to an extreme of the order — first if it's a
+  deadline, last if it worsens with time. That shipped, and a player found it
+  in minutes. A shift now carries a *set* of pressures: `hazards` (0-2,
+  budget scaled by task count) plus an optional `precedence`, so no single
+  "sort by X" move resolves the day on its own.
+- **Hazards stay disjoint; precedence doesn't have to.** No task carries two
+  hazard badges — a card's severity badge is always unambiguous. A
+  precedence pair's two tasks are free to also carry a hazard, or sit in
+  different zones. That overlap is deliberate, not an oversight: it's where
+  "do the urgent thing first" and "do the required-first thing first"
+  genuinely disagree, which is the only way two constraints add real
+  difficulty instead of two separate trivial ones.
+- **Precedence is a property of the order, not of one step.** Unlike a
+  hazard's wait — a pure function of one task's arrival time — precedence
+  asks where task X sits relative to task Y in the committed order.
+  `simulateOrder` checks it once, up front, against the whole order. A
+  violated pair fails the run outright, discovered the same way a closed
+  shop is: by trying it during playback, not by being told in advance.
+- **Zones make travel time lie about distance, on purpose.** Every
+  scenario's floor plan already implies a natural spatial seam
+  (`zoneSplitX`). Crossing it adds a surcharge on top of geometric travel
+  time, sized as a fraction of the day's own optimal time — the same
+  convention every other constraint's magnitude already follows, not a fixed
+  number of minutes that's oversized on a flat and invisible on a town.
+- **A visible seam, not a hidden tax.** The floor changes tone at
+  `zoneSplitX`. Spatial reasoning needs something to look at and reason
+  about; an invisible boundary is a trap disguised as a puzzle.
+- **Zone-clustering must never become the new "sort by X."** Every generated
+  day guarantees at least two sampled tasks on each side of the seam, and the
+  generator is tested against a naive *zone-clustering* strategy exactly the
+  way it's tested against the old deadline/queue exploits. A day where
+  cluster-then-done is globally optimal regardless of everything else is a
+  generation bug, not an acceptable outcome.
+- **The generator is judged against the exploit, not the average.**
+  `naiveOrder()` (`src/lib/naiveHeuristic.ts`) plays the exact naive strategy
+  a player reaches for first — deadlines ascending, worsening hazards last,
+  zones clustered, precedence patched up after the fact — and `tune()`
+  actively optimizes toward that strategy *missing* the deadline. A generic
+  loss-rate score being high was never proof the obvious move stopped
+  working; this is.
+- **Feasibility is a hard gate; naive-heuristic failure is a statistical
+  one.** Every generated day must have a feasible optimal order — checked
+  every single time, no exceptions, before anything else is scored. Whether
+  the naive heuristic fails is a property that holds across many generated
+  days, not a guarantee for any one of them. Conflating the two is how you
+  ship an impossible day.
 - **Loss is clean, not partial.** Exceeding the deadline ends the shift. No
   partial credit, no "almost." A wrong order is just wrong.
 - **First attempt is the score; everything after is practice.** Today's

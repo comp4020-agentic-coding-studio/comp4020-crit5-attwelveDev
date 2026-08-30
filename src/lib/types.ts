@@ -87,7 +87,29 @@ export type HoursConstraint = {
   readonly closeAt: number;
 };
 
-export type Constraint = QueueConstraint | HoursConstraint;
+/**
+ * A per-task timing pressure — the wait (or unreachability) is a pure
+ * function of that one task's arrival time. A shift carries a small set of
+ * these, disjoint from each other, so a card's severity badge is never
+ * ambiguous about which hazard it's showing.
+ */
+export type Hazard = QueueConstraint | HoursConstraint;
+
+/**
+ * An order-wide constraint, not a per-task one: it asks where task X sits
+ * relative to task Y in the committed order, which isn't answerable from any
+ * single task's arrival time. Deliberately allowed to touch a hazard-affected
+ * task, or two tasks in different zones — that overlap is what stops the
+ * hazards and the precedence pair being solved one at a time.
+ */
+export type PrecedenceConstraint = {
+  readonly kind: "precedence";
+  readonly label: string;
+  readonly beforeId: string;
+  readonly afterId: string;
+  /** Shown if the shift is played with afterId attempted before beforeId. */
+  readonly blockedLabel: string;
+};
 
 /** A generated shift, before its deadline has been derived from itself. */
 export type ShiftPlan = {
@@ -107,7 +129,12 @@ export type ShiftPlan = {
   readonly tasks: readonly Task[];
   /** Only the places this shift actually visits. */
   readonly places: readonly Place[];
-  readonly constraint: Constraint;
+  readonly hazards: readonly Hazard[];
+  readonly precedence: PrecedenceConstraint | null;
+  /** The x-coordinate that splits this shift's map into two zones. */
+  readonly zoneSplitX: number;
+  /** Surcharge, in minutes, for a route step that crosses `zoneSplitX`. */
+  readonly zonePenaltyMinutes: number;
 };
 
 export type Shift = ShiftPlan & { readonly deadline: number };

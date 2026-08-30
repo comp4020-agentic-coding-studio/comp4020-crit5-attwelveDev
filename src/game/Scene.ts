@@ -1,4 +1,4 @@
-import { constraintReading } from "../lib/constraintState";
+import { hazardFor, hazardReading } from "../lib/constraintState";
 import type { Run, Step } from "../lib/route";
 import type { FloorKind, Place, Point, Shift } from "../lib/types";
 import { isoProp } from "./fixtures";
@@ -50,6 +50,13 @@ export type Frame = {
 
 /** Where the character is, and what they're doing, at simulated minute `t`. */
 export function frameAt(shift: Shift, run: Run, t: number): Frame {
+  // Precedence fails outright, before any travel — no step ever ran, so the
+  // character never leaves the start, stuck there the same way they'd be
+  // stuck outside a shop that's already shut.
+  if (!run.feasible && run.steps.length === 0) {
+    return { at: shift.start, state: "blocked", step: null, completed: 0 };
+  }
+
   let from = shift.start;
   for (const [index, step] of run.steps.entries()) {
     if (t < step.arrive) {
@@ -168,7 +175,24 @@ function floorTexture(b: Bounds, kind: FloorKind): string {
   return lines.join("");
 }
 
-function shell(b: Bounds, kind: FloorKind): string {
+/**
+ * A subtle tonal overlay on the far side of the map's spatial seam — shown,
+ * not hidden, so crossing it reads as a real cost the player can see coming
+ * rather than an invisible tax. Skipped if the seam falls outside this
+ * shift's own bounds (nothing to tint).
+ */
+function zoneOverlay(b: Bounds, splitX: number): string {
+  if (splitX <= b.west || splitX >= b.east) return "";
+  const quad = [
+    { x: splitX, y: b.north },
+    { x: b.east, y: b.north },
+    { x: b.east, y: b.south },
+    { x: splitX, y: b.south },
+  ];
+  return `<polygon class="zone-tint" points="${quad.map(at).join(" ")}" />`;
+}
+
+function shell(b: Bounds, kind: FloorKind, zoneSplitX: number): string {
   const floor = [
     { x: b.west, y: b.north },
     { x: b.east, y: b.north },
@@ -184,6 +208,7 @@ function shell(b: Bounds, kind: FloorKind): string {
 <polygon class="skirting-back" points="${up(nw, 2.4)} ${up(ne, 2.4)} ${at(ne)} ${at(nw)}" />
 <polygon class="skirting-side" points="${up(nw, 2.4)} ${up(sw, 2.4)} ${at(sw)} ${at(nw)}" />
 <polygon class="stage-floor" data-floor="${kind}" points="${floor.map(at).join(" ")}" />
+${zoneOverlay(b, zoneSplitX)}
 <g class="floor-texture" data-floor="${kind}">${floorTexture(b, kind)}</g>`;
 }
 
@@ -256,15 +281,30 @@ function markerSpot(shift: Shift, taskId: string): Point {
   };
 }
 
-function markerShape(shift: Shift): "up" | "down" | "cutoff" {
-  if (shift.constraint.kind === "hours") return "cutoff";
-  return shift.constraint.growthRate > 0 ? "up" : "down";
+type FlagShape = "up" | "down" | "cutoff" | "link";
+
+/**
+ * Which flag (if any) a task's marker shows. A hazard, when this task has
+ * one, always wins the slot — it's the more urgent fact. A task with no
+ * hazard but a role in the active precedence pair gets the fourth shape
+ * instead, so "must happen in order" is visible on the board too, not only
+ * in the task list.
+ */
+function flagShapeFor(shift: Shift, taskId: string): FlagShape | null {
+  const hazard = hazardFor(shift.hazards, taskId);
+  if (hazard) return hazard.kind === "hours" ? "cutoff" : hazard.growthRate > 0 ? "up" : "down";
+  const precedence = shift.precedence;
+  if (precedence && (precedence.beforeId === taskId || precedence.afterId === taskId)) {
+    return "link";
+  }
+  return null;
 }
 
-function flag(shape: string, x: number, y: number): string {
+function flag(shape: FlagShape, x: number, y: number): string {
   if (shape === "up") return `<polygon points="${x},${y - 3} ${x + 2.8},${y + 2} ${x - 2.8},${y + 2}" />`;
   if (shape === "down") return `<polygon points="${x},${y + 3} ${x - 2.8},${y - 2} ${x + 2.8},${y - 2}" />`;
-  return `<polygon points="${x},${y - 3} ${x + 3},${y} ${x},${y + 3} ${x - 3},${y}" />`;
+  if (shape === "cutoff") return `<polygon points="${x},${y - 3} ${x + 3},${y} ${x},${y + 3} ${x - 3},${y}" />`;
+  return `<rect x="${(x - 2.6).toFixed(2)}" y="${(y - 2.6).toFixed(2)}" width="5.2" height="5.2" />`;
 }
 
 export type PlaybackHooks = {
@@ -316,7 +356,7 @@ export function createScene(svg: SVGSVGElement): SceneHandle {
       // The route is painted on the floor, so it belongs under the furniture.
       // The markers are UI: they belong above everything, or a shelf hides the
       // number telling you when to visit it.
-      svg.innerHTML = `${shell(bounds, shift.floor)}
+      svg.innerHTML = `${shell(bounds, shift.floor, shift.zoneSplitX)}
 <g class="scene-route-layer"></g>
 <g class="scene-places">${places
         .map(
@@ -342,7 +382,6 @@ export function createScene(svg: SVGSVGElement): SceneHandle {
 
     setOrder(shift, order) {
       if (!routeLayer || !markerLayer || !labelLayer) return;
-      const shape = markerShape(shift);
       const spots = order.map((id) => markerSpot(shift, id));
       const route = [shift.start, ...spots].map(at).join(" ");
 
@@ -355,9 +394,10 @@ export function createScene(svg: SVGSVGElement): SceneHandle {
         .map((id, index) => {
           const spot = spots[index] as Point;
           const screen = iso(spot);
-          const reading = constraintReading(shift.constraint, id, 0);
+          const reading = hazardReading(shift.hazards, id, 0);
+          const shape = flagShapeFor(shift, id);
           const moved = previous[index] !== id;
-          const hasFlag = reading.severity !== "none";
+          const hasFlag = shape !== null;
           let lift = MARKER_LIFT;
           for (let guard = 0; guard < 8; guard++) {
             const clash = taken.some(
@@ -381,7 +421,7 @@ export function createScene(svg: SVGSVGElement): SceneHandle {
   <ellipse class="marker-foot" cx="${screen.x.toFixed(2)}" cy="${screen.y.toFixed(2)}" rx="2.2" ry="1.2" />
   <circle class="marker-disc" cx="${screen.x.toFixed(2)}" cy="${top.toFixed(2)}" r="4.4" />
   <text class="marker-number" x="${screen.x.toFixed(2)}" y="${(top + 1.5).toFixed(2)}">${index + 1}</text>
-  ${hasFlag ? `<g class="marker-flag">${flag(shape, screen.x + 5.4, top - 4.2)}</g>` : ""}
+  ${hasFlag ? `<g class="marker-flag">${flag(shape as FlagShape, screen.x + 5.4, top - 4.2)}</g>` : ""}
 </g>`;
         })
         .join("");

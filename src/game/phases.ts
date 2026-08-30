@@ -1,3 +1,4 @@
+import { hazardFor } from "../lib/constraintState";
 import { generateRandom, generateToday } from "../lib/generate";
 import { simulateOrder, type Run } from "../lib/route";
 import {
@@ -25,14 +26,18 @@ function periodOf(startClock: number): string {
   return hour < 12 ? "morning" : hour < 17 ? "afternoon" : "evening";
 }
 
-function constraintNote(shift: Shift): string {
-  const c = shift.constraint;
-  if (c.kind === "hours") {
-    return `${c.label} ${c.verb} ${clockAt(shift.startClock, c.closeAt)}`;
-  }
-  return c.growthRate > 0
-    ? `${c.label} — building through the ${periodOf(shift.startClock)}`
-    : `${c.label} — ${minutes(c.startWait)} right now, clearing as the ${periodOf(shift.startClock)} goes on`;
+/** One line per active hazard, plus one more if a precedence pair is active. */
+function constraintLines(shift: Shift): string[] {
+  const lines = shift.hazards.map((hazard) => {
+    if (hazard.kind === "hours") {
+      return `${hazard.label} ${hazard.verb} ${clockAt(shift.startClock, hazard.closeAt)}`;
+    }
+    return hazard.growthRate > 0
+      ? `${hazard.label} — building through the ${periodOf(shift.startClock)}`
+      : `${hazard.label} — ${minutes(hazard.startWait)} right now, clearing as the ${periodOf(shift.startClock)} goes on`;
+  });
+  if (shift.precedence) lines.push(shift.precedence.label);
+  return lines;
 }
 
 function outcomeOf(shift: Shift, run: Run): Outcome {
@@ -88,7 +93,9 @@ export function mountGame(): void {
       shift.startClock,
       shift.deadline,
     );
-    need<HTMLElement>("#constraint").textContent = constraintNote(shift);
+    need<HTMLUListElement>("#constraints").innerHTML = constraintLines(shift)
+      .map((line) => `<li>${escape(line)}</li>`)
+      .join("");
 
     const eyebrow = need<HTMLElement>("#eyebrow");
     if (mode === "random") {
@@ -131,13 +138,18 @@ export function mountGame(): void {
 
   function describe(frame: Frame): string {
     if (frame.state === "done") return "Shift over";
+    // Precedence fails outright, before any travel: no step to point at, so
+    // the message comes from the constraint itself — discovered by trying,
+    // the same way a closed shop is.
+    if (frame.state === "blocked" && !frame.step) {
+      return shift.precedence?.blockedLabel ?? "Blocked";
+    }
     if (!frame.step) return "";
     if (frame.state === "travel") return `Heading to ${frame.step.task.place}`;
-    if (frame.state === "wait") return `Waiting — ${shift.constraint.label}`;
+    const hazard = hazardFor(shift.hazards, frame.step.task.id);
+    if (frame.state === "wait") return `Waiting — ${hazard?.label ?? ""}`;
     if (frame.state === "blocked") {
-      return shift.constraint.kind === "hours"
-        ? shift.constraint.closedLabel
-        : "Blocked";
+      return hazard?.kind === "hours" ? hazard.closedLabel : "Blocked";
     }
     return frame.step.task.label;
   }
@@ -155,16 +167,19 @@ export function mountGame(): void {
         ? `Finished ${clockAt(shift.startClock, run.total)} — ${minutes(spare)} to spare`
         : outcome === "ran-out"
           ? `The clock hit ${clockAt(shift.startClock, shift.deadline)} with ${plural(shift.tasks.length - run.steps.filter((s) => s.done <= shift.deadline).length, "task", "tasks")} still to go`
-          : `${run.steps[run.steps.length - 1]?.task.label ?? "A task"} was already out of reach`;
+          : run.steps.length === 0
+            ? (shift.precedence?.blockedLabel ?? "Blocked before it could start")
+            : `${run.steps[run.steps.length - 1]?.task.label ?? "A task"} was already out of reach`;
 
     const breakdown = run.steps
       .map((step) => {
         const blocked = !Number.isFinite(step.wait);
         const late = !blocked && step.done > shift.deadline;
         const state = blocked ? "blocked" : late ? "late" : "ok";
+        const hazard = blocked ? hazardFor(shift.hazards, step.task.id) : null;
         const cost = blocked
-          ? shift.constraint.kind === "hours"
-            ? shift.constraint.closedLabel
+          ? hazard?.kind === "hours"
+            ? hazard.closedLabel
             : "blocked"
           : `${minutes(step.arrive - step.leave)} there${step.wait > 0 ? ` · ${minutes(step.wait)} waiting` : ""} · ${minutes(step.task.baseTime)}`;
         return `<li class="task is-recap" data-state="${state}">

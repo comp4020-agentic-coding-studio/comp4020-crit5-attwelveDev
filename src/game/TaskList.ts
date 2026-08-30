@@ -1,4 +1,4 @@
-import { constraintReading, worsensOverTime } from "../lib/constraintState";
+import { hazardFor, hazardReading, worsensOverTime } from "../lib/constraintState";
 import type { Severity } from "../lib/constraintState";
 import type { Shift, Task } from "../lib/types";
 import { clockAt, minutes } from "./format";
@@ -20,28 +20,60 @@ function badgeIcon(shape: "up" | "down" | "cutoff"): string {
   return `<polygon points="6,1.5 10.5,6 6,10.5 1.5,6" />`;
 }
 
+/** A small arrow, not a severity shape — precedence isn't a hazard. */
+function precedenceIcon(role: "before" | "after"): string {
+  return role === "before"
+    ? `<polygon points="3,1.5 9,6 3,10.5" />`
+    : `<polygon points="9,1.5 3,6 9,10.5" />`;
+}
+
 type Badge = { shape: "up" | "down" | "cutoff"; text: string; severity: Severity };
 
 function badgeFor(shift: Shift, task: Task, at: number): Badge | null {
-  const reading = constraintReading(shift.constraint, task.id, at);
+  const hazard = hazardFor(shift.hazards, task.id);
+  if (!hazard) return null;
+  const reading = hazardReading(shift.hazards, task.id, at);
   if (reading.severity === "none") return null;
 
-  // The badge says what the constraint does to *this* task, not what it's
+  // The badge says what the hazard does to *this* task, not what it's
   // called — the header already names it, and a cold player needs the
   // consequence, not the noun.
-  if (shift.constraint.kind === "hours") {
+  if (hazard.kind === "hours") {
     return {
       shape: "cutoff",
-      text: `by ${clockAt(shift.startClock, shift.constraint.closeAt)}`,
+      text: `by ${clockAt(shift.startClock, hazard.closeAt)}`,
       severity: reading.severity,
     };
   }
-  const worse = worsensOverTime(shift.constraint);
+  const worse = worsensOverTime(hazard);
   return {
     shape: worse ? "up" : "down",
     text: worse ? "worse later" : "better later",
     severity: reading.severity,
   };
+}
+
+type PrecedenceNote = { role: "before" | "after"; text: string };
+
+/**
+ * A card can carry this *and* a hazard badge at once — a task is free to be
+ * both urgent and order-locked, and that overlap is what stops the two
+ * pressures being solved one at a time. Kept as its own slot, under the
+ * place name, rather than a second pill in the badge row, so it never fights
+ * the hazard badge for space on the phone viewport.
+ */
+function precedenceNoteFor(shift: Shift, task: Task): PrecedenceNote | null {
+  const precedence = shift.precedence;
+  if (!precedence) return null;
+  if (precedence.beforeId === task.id) {
+    const after = shift.tasks.find((t) => t.id === precedence.afterId);
+    return after ? { role: "before", text: `before ${after.label}` } : null;
+  }
+  if (precedence.afterId === task.id) {
+    const before = shift.tasks.find((t) => t.id === precedence.beforeId);
+    return before ? { role: "after", text: `after ${before.label}` } : null;
+  }
+  return null;
 }
 
 function escape(text: string): string {
@@ -86,11 +118,17 @@ export function createTaskList(
         const task = byId.get(id);
         if (!task) return "";
         const badge = badgeFor(shift as Shift, task, 0);
+        const precedence = precedenceNoteFor(shift as Shift, task);
         return `<li class="task" data-id="${escape(id)}" tabindex="0" aria-label="${escape(task.label)}, ${index + 1} of ${order.length}">
   <span class="task-index" aria-hidden="true">${index + 1}</span>
   <span class="task-body">
     <span class="task-label">${escape(task.label)}</span>
     <span class="task-place">${escape(task.place)}</span>
+    ${
+      precedence
+        ? `<span class="task-precedence" data-role="${precedence.role}"><svg viewBox="0 0 12 12" aria-hidden="true">${precedenceIcon(precedence.role)}</svg>${escape(precedence.text)}</span>`
+        : ""
+    }
   </span>
   ${
     badge

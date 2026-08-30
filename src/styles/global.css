@@ -369,6 +369,15 @@ a:focus-visible {
   fill: var(--floor-paving);
 }
 
+/* The map's spatial seam, shown rather than hidden: a subtle tonal shift on
+   one side of `zoneSplitX`, not a legend or a label — something to look at
+   and reason about, the same way every other mechanic here teaches itself. */
+.zone-tint {
+  fill: var(--outline);
+  opacity: 0.07;
+  pointer-events: none;
+}
+
 .floor-texture line {
   stroke: var(--outline);
   stroke-width: 0.3;
@@ -859,9 +868,17 @@ a:focus-visible {
   font-variant-numeric: tabular-nums;
 }
 
-.constraint {
-  padding: var(--s-2) var(--s-3);
+/* A shift can carry several pressures at once, so this is a short stack of
+   lines, not one banner sentence — one per hazard, one more for precedence. */
+.constraints {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
   margin-top: var(--s-4);
+}
+
+.constraints li {
+  padding: var(--s-2) var(--s-3);
   font-size: var(--t-2);
   color: var(--ink);
   background: var(--tint-warn);
@@ -922,6 +939,28 @@ a:focus-visible {
 .task-place {
   font-size: var(--t-1);
   color: var(--muted);
+}
+
+/* Precedence is not a hazard — its own colour and shape, its own slot under
+   the place name, so it never competes with the hazard badge for room. */
+.task-precedence {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+  overflow: hidden;
+  font-size: var(--t-1);
+  font-weight: 600;
+  color: var(--accent);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.task-precedence svg {
+  width: 9px;
+  height: 9px;
+  flex: none;
+  fill: currentcolor;
 }
 
 .task-badge {

@@ -45,6 +45,10 @@ export type Scenario = {
   readonly hours: { readonly verb: string; readonly closedLabel: string };
   readonly places: readonly Place[];
   readonly tasks: readonly Task[];
+  /** The x-coordinate that splits this scenario's floor plan into two zones. */
+  readonly zoneSplitX: number;
+  /** Plausible causal pairs, real task ids — generation picks at most one. */
+  readonly precedencePool: readonly { readonly before: string; readonly after: string }[];
 };
 
 type TaskSeed = [
@@ -103,6 +107,8 @@ const GETTING_READY: Scenario = {
     ["iron-shirt", "Iron a shirt", "Laundry", 7, ["hours"]],
     ["shoes", "Put on shoes", "Hallway", 3, []],
   ]),
+  zoneSplitX: 50,
+  precedencePool: [{ before: "iron-shirt", after: "get-dressed" }],
 };
 
 // ── The Office ────────────────────────────────────────────────────────────
@@ -146,6 +152,11 @@ const WORK_DAY: Scenario = {
     ["book-travel", "Book travel", "Your desk", 6, []],
     ["timesheet", "Get the timesheet signed", "Manager's office", 3, ["hours"]],
   ]),
+  zoneSplitX: 50,
+  precedencePool: [
+    { before: "print-reports", after: "one-on-one" },
+    { before: "restock", after: "coffee-round" },
+  ],
 };
 
 // ── The Gym ───────────────────────────────────────────────────────────────
@@ -190,6 +201,11 @@ const GYM_SESSION: Scenario = {
     ["sauna", "Sit in the sauna", "Sauna", 12, ["hours"]],
     ["weigh-in", "Weigh in", "Front desk", 3, ["hours"]],
   ]),
+  zoneSplitX: 50,
+  precedencePool: [
+    { before: "warm-up", after: "squats" },
+    { before: "warm-up", after: "bench" },
+  ],
 };
 
 // ── The Supermarket ───────────────────────────────────────────────────────
@@ -233,6 +249,8 @@ const GROCERY_RUN: Scenario = {
     ["household", "Household aisle", "Household", 6, []],
     ["cleaning", "Cleaning supplies", "Household", 4, []],
   ]),
+  zoneSplitX: 50,
+  precedencePool: [],
 };
 
 // ── The Kitchen ───────────────────────────────────────────────────────────
@@ -276,6 +294,11 @@ const COOKING: Scenario = {
     ["set-table", "Set the table", "Dining table", 5, []],
     ["spices", "Dig out the spices", "Pantry", 4, []],
   ]),
+  zoneSplitX: 40,
+  precedencePool: [
+    { before: "prep-veg", after: "sauce" },
+    { before: "marinate", after: "roast" },
+  ],
 };
 
 // ── Town ──────────────────────────────────────────────────────────────────
@@ -319,6 +342,11 @@ const WEEKEND_ERRANDS: Scenario = {
     ["car-wash", "Wash the car", "Car wash", 11, ["queue"]],
     ["browse", "Browse the stalls", "Farmers market", 6, []],
   ]),
+  zoneSplitX: 50,
+  precedencePool: [
+    { before: "bank", after: "cake" },
+    { before: "hardware", after: "car-wash" },
+  ],
 };
 
 export const SCENARIOS: readonly Scenario[] = [
