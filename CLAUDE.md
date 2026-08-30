@@ -260,22 +260,39 @@ alone, so they're written down rather than left implicit:
     prop, the route below them on the floor. A shelf that hides the number
     telling you when to visit it is a bug.
   - **Room names are a subtle tag, not a heading.** Each place carries a small
-    name label — muted colour, small type, a thin halo — tucked at its
-    back-left corner and lifted like a little sign rather than sitting on the
-    floor. It's there so a player can point at a shelf and read what it is,
-    the same job the reference dioramas' wall signage does; it must never
-    compete with the numbered markers or the props for attention. Labels are
-    positioned defensively: `Scene.ts`'s `labelFor` checks a candidate spot
-    against every marker's actual on-screen reach (disc, stem and severity
-    flag) and pushes the label up if it would land in one, mirroring how
-    markers already push each other apart when they'd stack. Past a handful
-    of tries it gives up and omits that one label rather than drawing it
-    overlapped or floated above the walls — a missing label in a crowded room
-    is a smaller loss than a broken-looking one. If you touch this, verify
-    with a scripted sweep across many random shifts (compare each label's
-    bounding box against every marker part's), not by eyeballing one
-    screenshot — the collisions this was written for only show up in
-    specific room shapes and task counts.
+    name label — muted colour, small type, a thin halo — floating like a
+    little sign above the prop itself, not sitting on the floor. It's there so
+    a player can point at a shelf and read what it is, the same job the
+    reference dioramas' wall signage does; it must never compete with the
+    numbered markers or the props for attention.
+  - **A label anchors on the prop's own position (`place.at`), never on the
+    place's declared `w`/`h` footprint.** The footprint exists purely for
+    scenario *layout* — keeping neighbouring rooms from overlapping — and has
+    no relation to how big the prop actually is (a shelving unit is only ~4
+    units deep regardless of how wide its room is declared). A label anchored
+    at a footprint corner shipped landing nowhere near its own object —
+    sometimes closer to a neighbouring room's prop than its own, which is
+    exactly the confusing result a location tag exists to prevent. If a label
+    ever looks like it belongs to the wrong object, this is almost certainly
+    the cause: check what it's anchored to before touching anything else.
+  - Labels are also positioned defensively against the markers: `Scene.ts`'s
+    `labelFor` checks a candidate spot against every marker's actual
+    on-screen reach (disc, stem and severity flag) and pushes the label up if
+    it would land in one, mirroring how markers already push each other apart
+    when they'd stack. Past a handful of tries it gives up and omits that one
+    label rather than drawing it overlapped or floated above the walls — a
+    missing label in a crowded room is a smaller loss than a broken-looking
+    one. The exact margins (`± 8` horizontal, `-2/+1.5` vertical padding) are
+    tuned, not arbitrary: tightening them to reduce how often labels get
+    omitted was tried and produced real, confirmed overlaps — verified by a
+    scripted geometry sweep, not by eye. Loosening them back out was what
+    fixed it. Don't re-tighten without re-running that sweep.
+  - If you touch any of this, verify with a scripted sweep across many random
+    shifts (compare each label's bounding box against every marker part's —
+    `label.getBBox()` vs `.marker-disc` / `.marker-flag polygon` /
+    `.marker-number`), not by eyeballing one screenshot. The collisions this
+    was written for only show up in specific room shapes and task counts, and
+    a fix that looks right in one screenshot can still be wrong in general.
 - **One light source, declared once.** Isometric props are built only from the
   primitives in `game/iso.ts`, and a prop picks a material; the three faces
   derive from its `--tone` in CSS. Never shade a face by hand and never add a

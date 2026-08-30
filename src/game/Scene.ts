@@ -192,8 +192,8 @@ function sorted(places: readonly Place[]): Place[] {
   return [...places].sort((a, b) => depth(a.at) - depth(b.at));
 }
 
-/** Base height a place's name tag sits above the floor, like a small sign. */
-const LABEL_BASE_LIFT = 5.5;
+/** Base height a place's name tag floats above its prop, like a small sign. */
+const LABEL_BASE_LIFT = 13;
 /** Roughly how wide one character of the tag renders, in board units. */
 const LABEL_CHAR_WIDTH = 1.55;
 
@@ -201,39 +201,46 @@ const LABEL_CHAR_WIDTH = 1.55;
 type Zone = { readonly x: number; readonly top: number; readonly bottom: number };
 
 /**
- * A name tag at the room's back-left corner, lifted like a small sign rather
- * than sitting on the floor. A fixed lift isn't quite enough on its own: a
- * shallow room with one centred, flagged task puts the marker's severity flag
- * (which floats above and beside the disc) right where the tag starts, so the
- * tag is pushed further up whenever it would land in a marker's zone —
- * mirroring how markers already push each other apart when they'd overlap.
+ * A name tag centred directly over the prop, lifted like a small sign rather
+ * than sitting on the floor. It anchors on `place.at` — where every fixture in
+ * `fixtures.ts` actually centres its own drawing — deliberately not on the
+ * place's declared `w`/`h` footprint. That footprint exists for scenario
+ * *layout*: keeping neighbouring rooms from overlapping. It has no relation
+ * to how big the prop drawn inside it actually is (a shelving unit is only
+ * ~4 units deep no matter how wide its room footprint is declared), so a
+ * label anchored at a footprint corner routinely landed nowhere near its own
+ * object — sometimes closer to a neighbouring room's prop instead. Anchoring
+ * on the prop's own centre point fixes that regardless of footprint size.
  *
- * That pushing has a limit. Three tasks sharing one place stack their markers
- * tall enough to reach a neighbouring room's corner, and chasing every such
- * stack with an ever-taller label would eventually float the tag above the
- * walls. Past a modest number of tries, this omits the tag rather than
- * drawing it overlapped or absurdly high — a missing label in a crowded room
- * is a smaller loss than a broken-looking one.
+ * A fixed lift still isn't quite enough on its own: a severity flag floats
+ * above and beside a marker's disc, so the tag is pushed further up whenever
+ * it would land in a marker's zone — mirroring how markers already push each
+ * other apart when they'd overlap. That pushing has a limit: three tasks
+ * sharing one place stack their markers tall enough to reach a neighbouring
+ * room, and chasing every such stack with an ever-taller label would
+ * eventually float it above the walls. Past a modest number of tries, this
+ * omits the tag rather than drawing it overlapped or absurdly high — a
+ * missing label in a crowded room is a smaller loss than a broken-looking one.
  */
 function labelFor(place: Place, zones: readonly Zone[]): string | null {
-  const corner = iso({ x: place.at.x - place.w / 2, y: place.at.y - place.h / 2 });
-  const width = place.name.length * LABEL_CHAR_WIDTH;
+  const anchor = iso(place.at);
+  const halfWidth = (place.name.length * LABEL_CHAR_WIDTH) / 2;
   let lift = LABEL_BASE_LIFT;
   let clash = true;
 
   for (let guard = 0; guard < 5 && clash; guard++) {
-    const y = corner.y - lift;
+    const y = anchor.y - lift;
     clash = zones.some(
       (zone) =>
-        corner.x - 8 < zone.x &&
-        zone.x < corner.x + width + 8 &&
+        anchor.x - halfWidth - 8 < zone.x &&
+        zone.x < anchor.x + halfWidth + 8 &&
         y - 2 < zone.bottom &&
         y + 1.5 > zone.top,
     );
     if (clash) lift += 6;
   }
   if (clash) return null;
-  return `<text class="place-label" x="${corner.x.toFixed(2)}" y="${(corner.y - lift).toFixed(2)}">${escape(place.name)}</text>`;
+  return `<text class="place-label" x="${anchor.x.toFixed(2)}" y="${(anchor.y - lift).toFixed(2)}">${escape(place.name)}</text>`;
 }
 
 /** Where a task's marker stands: in front of its place, spread if it shares one. */
