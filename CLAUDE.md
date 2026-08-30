@@ -259,6 +259,23 @@ alone, so they're written down rather than left implicit:
   - **Markers are UI, scenery is not.** Numbered markers are drawn above every
     prop, the route below them on the floor. A shelf that hides the number
     telling you when to visit it is a bug.
+  - **Room names are a subtle tag, not a heading.** Each place carries a small
+    name label — muted colour, small type, a thin halo — tucked at its
+    back-left corner and lifted like a little sign rather than sitting on the
+    floor. It's there so a player can point at a shelf and read what it is,
+    the same job the reference dioramas' wall signage does; it must never
+    compete with the numbered markers or the props for attention. Labels are
+    positioned defensively: `Scene.ts`'s `labelFor` checks a candidate spot
+    against every marker's actual on-screen reach (disc, stem and severity
+    flag) and pushes the label up if it would land in one, mirroring how
+    markers already push each other apart when they'd stack. Past a handful
+    of tries it gives up and omits that one label rather than drawing it
+    overlapped or floated above the walls — a missing label in a crowded room
+    is a smaller loss than a broken-looking one. If you touch this, verify
+    with a scripted sweep across many random shifts (compare each label's
+    bounding box against every marker part's), not by eyeballing one
+    screenshot — the collisions this was written for only show up in
+    specific room shapes and task counts.
 - **One light source, declared once.** Isometric props are built only from the
   primitives in `game/iso.ts`, and a prop picks a material; the three faces
   derive from its `--tone` in CSS. Never shade a face by hand and never add a

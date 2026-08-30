@@ -15,9 +15,12 @@ import { depth, iso } from "./iso";
  * floor with a real material, two back walls, and a skirting where they meet.
  * That shell is most of what makes an isometric room read as a room.
  *
- * Places carry no name labels. The numbered markers already map the task list
- * onto the room, and text laid over the floor fought the props for the same
- * pixels while adding nothing the list doesn't say.
+ * Each place carries a small name tag, tucked against its back-left corner
+ * rather than at its front edge — that's clear of both the prop itself and
+ * the numbered marker standing in front of it, which is why an earlier
+ * version of this label (anchored at the front edge, full size) had to be
+ * removed rather than tuned. Subtle on purpose: muted, small, a thin halo in
+ * the floor colour for legibility — a label, not a heading.
  */
 
 /** A few seconds whatever the shift's simulated length: snappy, not real-time. */
@@ -189,6 +192,50 @@ function sorted(places: readonly Place[]): Place[] {
   return [...places].sort((a, b) => depth(a.at) - depth(b.at));
 }
 
+/** Base height a place's name tag sits above the floor, like a small sign. */
+const LABEL_BASE_LIFT = 5.5;
+/** Roughly how wide one character of the tag renders, in board units. */
+const LABEL_CHAR_WIDTH = 1.55;
+
+/** The screen-space rectangle a marker's stem, disc and flag occupy. */
+type Zone = { readonly x: number; readonly top: number; readonly bottom: number };
+
+/**
+ * A name tag at the room's back-left corner, lifted like a small sign rather
+ * than sitting on the floor. A fixed lift isn't quite enough on its own: a
+ * shallow room with one centred, flagged task puts the marker's severity flag
+ * (which floats above and beside the disc) right where the tag starts, so the
+ * tag is pushed further up whenever it would land in a marker's zone —
+ * mirroring how markers already push each other apart when they'd overlap.
+ *
+ * That pushing has a limit. Three tasks sharing one place stack their markers
+ * tall enough to reach a neighbouring room's corner, and chasing every such
+ * stack with an ever-taller label would eventually float the tag above the
+ * walls. Past a modest number of tries, this omits the tag rather than
+ * drawing it overlapped or absurdly high — a missing label in a crowded room
+ * is a smaller loss than a broken-looking one.
+ */
+function labelFor(place: Place, zones: readonly Zone[]): string | null {
+  const corner = iso({ x: place.at.x - place.w / 2, y: place.at.y - place.h / 2 });
+  const width = place.name.length * LABEL_CHAR_WIDTH;
+  let lift = LABEL_BASE_LIFT;
+  let clash = true;
+
+  for (let guard = 0; guard < 5 && clash; guard++) {
+    const y = corner.y - lift;
+    clash = zones.some(
+      (zone) =>
+        corner.x - 8 < zone.x &&
+        zone.x < corner.x + width + 8 &&
+        y - 2 < zone.bottom &&
+        y + 1.5 > zone.top,
+    );
+    if (clash) lift += 6;
+  }
+  if (clash) return null;
+  return `<text class="place-label" x="${corner.x.toFixed(2)}" y="${(corner.y - lift).toFixed(2)}">${escape(place.name)}</text>`;
+}
+
 /** Where a task's marker stands: in front of its place, spread if it shares one. */
 function markerSpot(shift: Shift, taskId: string): Point {
   const task = shift.tasks.find((candidate) => candidate.id === taskId);
@@ -232,6 +279,7 @@ export function createScene(svg: SVGSVGElement): SceneHandle {
   let actor: SVGGElement | null = null;
   let routeLayer: SVGGElement | null = null;
   let markerLayer: SVGGElement | null = null;
+  let labelLayer: SVGGElement | null = null;
   let previous: string[] = [];
 
   function moveActor(frame: Frame): void {
@@ -269,6 +317,7 @@ export function createScene(svg: SVGSVGElement): SceneHandle {
             `<g class="room3d" data-place="${escape(spot.name)}">${isoProp(spot)}</g>`,
         )
         .join("")}</g>
+<g class="scene-place-labels"></g>
 <g class="scene-marker-layer"></g>
 <g class="actor" data-state="done">
   <ellipse class="actor-shadow" cx="0" cy="0" rx="5" ry="2.5" />
@@ -279,12 +328,13 @@ export function createScene(svg: SVGSVGElement): SceneHandle {
       actor = svg.querySelector<SVGGElement>(".actor");
       routeLayer = svg.querySelector<SVGGElement>(".scene-route-layer");
       markerLayer = svg.querySelector<SVGGElement>(".scene-marker-layer");
+      labelLayer = svg.querySelector<SVGGElement>(".scene-place-labels");
       previous = [];
       moveActor({ at: shift.start, state: "done", step: null, completed: 0 });
     },
 
     setOrder(shift, order) {
-      if (!routeLayer || !markerLayer) return;
+      if (!routeLayer || !markerLayer || !labelLayer) return;
       const shape = markerShape(shift);
       const spots = order.map((id) => markerSpot(shift, id));
       const route = [shift.start, ...spots].map(at).join(" ");
@@ -293,12 +343,14 @@ export function createScene(svg: SVGSVGElement): SceneHandle {
       // spots are metres apart, so stack them rather than letting them
       // overlap into an unreadable pile.
       const taken: Point[] = [];
+      const zones: Zone[] = [];
       const markers = order
         .map((id, index) => {
           const spot = spots[index] as Point;
           const screen = iso(spot);
           const reading = constraintReading(shift.constraint, id, 0);
           const moved = previous[index] !== id;
+          const hasFlag = reading.severity !== "none";
           let lift = MARKER_LIFT;
           for (let guard = 0; guard < 8; guard++) {
             const clash = taken.some(
@@ -309,14 +361,27 @@ export function createScene(svg: SVGSVGElement): SceneHandle {
           }
           taken.push({ x: screen.x, y: screen.y - lift });
           const top = screen.y - lift;
+          // The severity flag floats above and beside the disc, so a label's
+          // clearance check needs the flag's reach; otherwise it's the disc's
+          // own radius (4.4) that sets how far above `top` the marker reaches.
+          zones.push({
+            x: screen.x,
+            top: hasFlag ? top - 8 : top - 4.6,
+            bottom: screen.y + 1,
+          });
           return `<g class="marker${moved ? " marker-changed" : ""}" data-severity="${reading.severity}">
   <line class="marker-stem" x1="${screen.x.toFixed(2)}" y1="${screen.y.toFixed(2)}" x2="${screen.x.toFixed(2)}" y2="${(top + 4).toFixed(2)}" />
   <ellipse class="marker-foot" cx="${screen.x.toFixed(2)}" cy="${screen.y.toFixed(2)}" rx="2.2" ry="1.2" />
   <circle class="marker-disc" cx="${screen.x.toFixed(2)}" cy="${top.toFixed(2)}" r="4.4" />
   <text class="marker-number" x="${screen.x.toFixed(2)}" y="${(top + 1.5).toFixed(2)}">${index + 1}</text>
-  ${reading.severity === "none" ? "" : `<g class="marker-flag">${flag(shape, screen.x + 5.4, top - 4.2)}</g>`}
+  ${hasFlag ? `<g class="marker-flag">${flag(shape, screen.x + 5.4, top - 4.2)}</g>` : ""}
 </g>`;
         })
+        .join("");
+
+      labelLayer.innerHTML = shift.places
+        .map((place) => labelFor(place, zones))
+        .filter((label) => label !== null)
         .join("");
 
       routeLayer.innerHTML = `<polyline class="scene-route" points="${route}" />

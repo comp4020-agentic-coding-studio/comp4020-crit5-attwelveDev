@@ -117,10 +117,19 @@ second abstract rendering of the same world asked the player to learn two
 languages for one place, and the numbered markers already do the job of
 mapping the task list onto the room.
 
+Each place also carries a small name tag (visible in every phase, not just
+planning) — subtle by design, and positioned defensively: it's checked against
+every marker's actual screen reach and pushed clear, or omitted entirely
+rather than drawn overlapped, if a room is too crowded to fit it cleanly.
+
 **Done when:** manual browser pass — a full shift plays to a win and to a
 loss, the active place highlights as the character reaches it, the replay
-stops dead at the deadline or at a closed task, and no marker is hidden behind
-a prop. *(Done 2026-08-30.)*
+stops dead at the deadline or at a closed task, no marker is hidden behind a
+prop, and every place name is either clear of every marker or not drawn at
+all — never overlapped. Verified with a scripted DOM sweep (bounding-box
+overlap between every `.place-label` and every marker part) across 40 random
+shifts, not by eyeballing a handful of screenshots.
+*(Done 2026-08-30.)*
 
 ### First attempt is the score — `src/lib/stats.ts`
 

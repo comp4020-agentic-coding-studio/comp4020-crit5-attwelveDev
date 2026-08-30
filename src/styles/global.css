@@ -417,6 +417,22 @@ a:focus-visible {
   text-anchor: middle;
 }
 
+/* A tag, not a heading: small, muted, and a thin halo rather than a bold
+   outline, so it reads as signage instead of competing with the props. */
+.place-label {
+  paint-order: stroke fill;
+  stroke: var(--floor);
+  stroke-width: 0.9;
+  stroke-linejoin: round;
+  font-size: 2.5px;
+  font-weight: 600;
+  fill: var(--muted);
+  text-anchor: start;
+  letter-spacing: 0.01em;
+  opacity: 0.82;
+  pointer-events: none;
+}
+
 .marker-stem {
   stroke: var(--outline);
   stroke-width: 0.5;
