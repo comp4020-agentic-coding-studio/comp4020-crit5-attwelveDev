@@ -41,7 +41,7 @@ function badgeFor(shift: Shift, task: Task, at: number): Badge | null {
   if (hazard.kind === "hours") {
     return {
       shape: "cutoff",
-      text: `by ${clockAt(shift.startClock, hazard.closeAt)}`,
+      text: `start by ${clockAt(shift.startClock, hazard.closeAt)}`,
       severity: reading.severity,
     };
   }

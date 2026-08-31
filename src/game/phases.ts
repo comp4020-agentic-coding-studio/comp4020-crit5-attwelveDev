@@ -37,7 +37,7 @@ function constraintLines(shift: Shift): string[] {
       : `${hazard.label} — ${minutes(hazard.startWait)} right now, clearing as the ${periodOf(shift.startClock)} goes on`;
   });
   if (shift.precedence) lines.push(shift.precedence.label);
-  if (shift.zonePenaltyMinutes > 0) lines.push(`Crossing the coloured floor zones takes ${shift.zonePenaltyMinutes} min`);
+  if (shift.zonePenaltyMinutes > 0) lines.push(`Crossing the two coloured floor zones takes ${shift.zonePenaltyMinutes} min`);
   return lines;
 }
 
