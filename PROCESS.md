@@ -1,14 +1,5 @@
 # Process overview
 
-<!-- TEMPLATE: this file is a shape to fill in, not a form. Replace everything
-     in it with your own overview, and delete this comment — `pnpm
-     check:evidence` will remind you if it's still here. -->
-
-A reading-guide to how the work came together --- a map to your process, not an
-essay about it. Markers read this file and follow its citations; they don't
-trawl the repo for evidence you didn't point at, so if a moment mattered, cite
-it.
-
 This file is the shape; the course site's
 [assessment page](https://comp.anu.edu.au/courses/comp4020-agentic-coding-studio/topics/assessment/#what-you-submit)
 is the requirement, and its
@@ -17,54 +8,30 @@ cover every deliverable.
 
 ## What I built
 
-One paragraph: the thing, and the idea behind it.
+Today's Shift: a task planning game that players must solve by ordering a list of tasks, some of which may have constraints, to meet a deadline.
+After ordering, the players watch as the plan executes with a 3D map visualisation, and see if they have met the deadline.
+Inspired by Wordle and similar games, I created daily puzzles, called _Shifts_, with stats such as streaks, to encourage the player to come back for a few days in a row.
+Each day, the puzzle is randomised, with different scenes, tasks, constraints, and deadlines.
+The puzzles also vary throughout the week, with more routine activities like working, grocery shopping, and going to the gym on weekdays, and more leisurely activities on the weekend.
 
 ## The moments that mattered
 
-Three or four for an assignment; fewer is fine for a weekly prototype. Keep the
-list short so each moment has room to do all four jobs:
+### Making the scenes more realistic
 
-1. **what happened** --- the problem, or the thing that went wrong
-2. **what you did instead of the obvious thing** --- the call you made, and why
-   it beat the obvious one
-3. **how you knew it was right** --- the check you ran, the viewport you looked
-   at, what you read before accepting the diff
-4. **the citation** --- a commit or commit range, a `CLAUDE.md` change, a check
-   that went from red to green, a prompt paired with the commit it produced
+The problem was that even though at the beginning, I had told the agent to adopt a "lofi/low-poly" design aesthetic, it leaned too much into the low-poly theme, and the visuals felt too cheap and boring.
+Furthermore, every scene was generic, and layouts felt arbitrary and non-realistic. 
 
-Jobs 2 and 3 are the ones the repo can't tell a reader on its own, so they're
-where the marks are. The strongest moments are the ones where a correction
-landed in the **harness** --- the standards and checks your work has to satisfy
---- rather than in a retry: a rule added to `CLAUDE.md`, a check wired up, an
-attempt thrown away. Retrying until it passes is the routine case, and changing
-what the work runs against is the skilled one.
+![too much low-poly design, 2D view](docs/low_quality_2d_before.png)
+![too much low-poly design, 3D view](docs/low_quality_3d_before.png)
 
-Cite each moment as a link whose text is the commit hash or range and whose
-target is this repo's commit or compare URL, so a reader clicks straight to the
-evidence:
+The obvious thing to do would've been to keep re-prompting until I got the desired design.
+But there were other design issues such as 3D object layering problems and unrealistic shelves where items were bunched in one corner.
+To resolve all of these problems at once, I prompted the agent to incorporate the design choices and realism requirements into `CLAUDE.md`, and also add sensors where appropriate.
 
-- one commit: [`a1b2c3d`](https://github.com/YOUR-ORG/YOUR-REPO/commit/a1b2c3d)
-- a range:
-  [`a1b2c3d...e4f5a6b`](https://github.com/YOUR-ORG/YOUR-REPO/compare/a1b2c3d...e4f5a6b)
+The new sensors eventually passed, and I manually checked the website at the two marked viewpoints, verifying the design was as I had desired. 
+It had indeed adopted a more lofi-inspired design, with more colour, texture, and details for each object.
+The agent also took the additional liberty of adding a "retro-like" typeface, adding to the personality of the game.
 
-To pair a prompt with the commit it produced, quote the prompt (curated, not a
-full transcript) next to the citation:
+![more realistic, lofi design](docs/better_quality_after.png)
 
-> the prompt, verbatim
-
-Screenshots are welcome where one carries the verification better than a
-sentence does. Commit the file to this repo and link it with a **relative**
-path, which is what makes it render on GitHub: `![alt text](docs/before.png)`.
-Images don't count towards the word count and don't replace the citation.
-
-## Before you ship
-
-`pnpm check:evidence` verifies your citations resolve to real commits, that a
-reflection entry the marker reads is in `reflections/`, and that your
-`CLAUDE.md` is there --- before a marker ever opens the file. It checks that
-your map is traceable, not that it is good: the marker judges whether your
-small, deliberately chosen set of moments shows real judgement and reflection. A
-green check is not a substitute for that curation.
-
-Images aren't checked: unlike a citation whose SHA doesn't resolve, a broken
-image is visible the moment this file is rendered on GitHub.
+[`a7f02a1...e4f5a6b`](https://github.com/comp4020-agentic-coding-studio/comp4020-crit5-attwelveDev/compare/a7f02a1...44cce5d)
