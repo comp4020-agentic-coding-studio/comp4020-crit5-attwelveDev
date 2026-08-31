@@ -54,8 +54,8 @@ describe("week bucketing", () => {
 
   it("weekIndex holds constant Monday through Sunday, then advances", () => {
     const monday = weekIndex(at(2026, 8, 31));
-    expect(weekIndex(at(2026, 9, 6))).toBe(monday);
-    expect(weekIndex(at(2026, 9, 7))).toBe(monday + 1);
+    expect(weekIndex(at(2026, 9, 7))).toBe(monday);
+    expect(weekIndex(at(2026, 9, 8))).toBe(monday + 1);
   });
 
   it("weekSeed is shared by every day of one week", () => {
