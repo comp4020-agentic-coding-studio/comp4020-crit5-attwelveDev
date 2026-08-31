@@ -1,11 +1,5 @@
 # Process overview
 
-This file is the shape; the course site's
-[assessment page](https://comp.anu.edu.au/courses/comp4020-agentic-coding-studio/topics/assessment/#what-you-submit)
-is the requirement, and its
-[word counts](https://comp.anu.edu.au/courses/comp4020-agentic-coding-studio/topics/assessment/#word-counts)
-cover every deliverable.
-
 ## What I built
 
 Today's Shift: a task planning game that players must solve by ordering a list of tasks, some of which may have constraints, to meet a deadline.
@@ -34,4 +28,4 @@ The agent also took the additional liberty of adding a "retro-like" typeface, ad
 
 ![more realistic, lofi design](docs/better_quality_after.png)
 
-[`a7f02a1...e4f5a6b`](https://github.com/comp4020-agentic-coding-studio/comp4020-crit5-attwelveDev/compare/a7f02a1...44cce5d)
+[`a7f02a1...44cce5d`](https://github.com/comp4020-agentic-coding-studio/comp4020-crit5-attwelveDev/compare/a7f02a1...44cce5d)
