@@ -32,14 +32,12 @@ export function dateSeed(date: Date): number {
  * what yesterday generated — skipping a day never breaks the sequence.
  */
 export function weekIndex(date: Date): number {
-  const midnight = new Date(
-    date.getFullYear(),
-    date.getMonth(),
-    date.getDate(),
-  ).getTime();
-  const days = Math.floor(midnight / 86400000);
-  // Epoch (1970-01-01) was a Thursday; shift by 4 so weeks break on Monday.
-  return Math.floor((days + 4) / 7);
+  const days = Math.floor(
+      Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) / 86400000,
+  );
+  // Epoch (1970-01-01) was a Thursday; the first Monday after epoch is day 4,
+  // so shift by 3 to align week-buckets to start on Monday.
+  return Math.floor((days + 3) / 7);
 }
 
 export function weekSeed(date: Date): number {
